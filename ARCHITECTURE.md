@@ -101,6 +101,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Modules Visitors, Analytics
 - [x] Module Dashboard
 - [x] Module Audit (traçabilité transverse)
+- [x] Module PDF (fiche de commande + QR Code de suivi)
 - [x] Module Notifications (file in-app back-office)
 - [x] Module Settings (configuration globale clé/valeur)
 - [~] Frontend (React 19 + Vite + Tailwind 4 — parcours public + back-office)
@@ -203,6 +204,24 @@ documentation Swagger — avant de passer au module suivant.
 - Hors périmètre : l'envoi par canal externe (email/SMS, ex. code
   d'invitation commercial) requiert un fournisseur non branché ; ce module
   couvre la file interne consultable après authentification.
+
+### Module PDF — détail
+
+- `GET /orders/:id/pdf` (Commercial/Admin/SuperAdmin) génère la fiche de
+  commande à la volée (`pdf-lib`) et la renvoie en streaming
+  (`application/pdf`, `inline`). Le fichier et son QR Code sont aussi
+  persistés sur disque et renseignent `Order.pdfUrl`/`qrCodeUrl`, laissés
+  `null` par le module Orders.
+- Le QR (`qrcode`) encode l'URL publique de suivi
+  (`{frontendUrl}/suivi?commande=ELC-...`) ; la saisie du téléphone reste
+  exigée côté suivi, le QR n'expose donc aucune donnée client.
+- Chaque appel trace un `PDF_DOWNLOAD` dans le journal d'audit ; la première
+  génération ajoute en plus une entrée `PDF_GENERATED` sur la timeline de la
+  commande (`OrderHistory`), sans la dupliquer aux téléchargements suivants.
+- `main.ts` sert désormais le répertoire disque sous `/uploads`
+  (`useStaticAssets`), ce qui rend résolvables à la fois les PDF/QR générés et
+  les uploads du scénario 2. Stockage disque en dev — à remplacer par un
+  bucket S3-compatible en prod (swap dans `uploads.dir` + le service).
 
 ### Module Settings — détail
 
