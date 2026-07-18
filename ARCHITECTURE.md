@@ -99,6 +99,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Modules Categories, Products
 - [x] Module Orders
 - [x] Modules Visitors, Analytics
+- [x] Module Dashboard
 - [ ] Frontend
 
 ### Modules Schools / Grades / SchoolLists / Uploads — détail
@@ -163,7 +164,31 @@ documentation Swagger — avant de passer au module suivant.
   `qrCodeUrl` restent `null` pour l'instant) : portée par les modules `PDF`
   et `Uploads`/`QrCode` à venir dans la feuille de route.
 
-Prochaine étape : module `Dashboard` (agrégations pour Admin/SuperAdmin).
+Prochaine étape : module `Audit` (traçabilité transverse : connexions,
+créations/modifications/suppressions, téléchargements PDF, consultations,
+exports).
+
+### Module Dashboard — détail
+
+- `GET /dashboard/overview` (Admin/SuperAdmin uniquement — tout le
+  contrôleur est gardé au niveau classe, pas seulement la route) — accepte
+  `from`/`to` (ISO 8601) optionnels ; sans eux, l'agrégation porte sur tout
+  l'historique.
+- Ne possède aucun modèle propre : il lit et combine `Order` et
+  `AnalyticsEvent`/`VisitorSession`/`Visitor`, conformément à la décision
+  "Analytics générique par événements" — c'est ici, et non dans le module
+  Analytics, que vivent les métriques dérivées.
+- Bloc `orders` : total, répartition par statut (`groupBy`), chiffre
+  d'affaires et panier moyen — calculés en excluant les commandes `CANCELLED`
+  pour ne pas fausser la moyenne.
+- Bloc `visitors` : nombre de sessions et nouveaux visiteurs sur la période,
+  nombre de sessions ayant ajouté un article (`ADD_TO_CART`) vs converties
+  (`CONVERSION`), taux d'abandon (sessions non converties / sessions
+  `ADD_TO_CART`), et temps moyen entre le début de session et la première
+  conversion.
+- Volontairement pas de pagination/liste détaillée ici : c'est un
+  agrégat pour des cartes de KPI, pas un explorateur de données (déjà
+  couvert par `GET /orders` et `GET /analytics/events`).
 
 ### Modules Visitors / Analytics — détail
 

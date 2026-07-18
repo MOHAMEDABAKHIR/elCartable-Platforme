@@ -14,6 +14,7 @@ import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
 import { VisitorsModule } from './visitors/visitors.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
     OrdersModule,
     VisitorsModule,
     AnalyticsModule,
-    // Modules à venir : Dashboard, Audit, Pdf, QrCode, Notifications, Settings.
+    DashboardModule,
+    // Modules à venir : Audit, Pdf, QrCode, Notifications, Settings.
   ],
 })
 export class AppModule {}
