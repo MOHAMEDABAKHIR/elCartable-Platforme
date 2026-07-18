@@ -101,6 +101,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Modules Visitors, Analytics
 - [x] Module Dashboard
 - [x] Module Audit (traçabilité transverse)
+- [x] Module Notifications (file in-app back-office)
 - [ ] Frontend
 
 ### Modules Schools / Grades / SchoolLists / Uploads — détail
@@ -184,8 +185,26 @@ documentation Swagger — avant de passer au module suivant.
   d'entité, période) avec l'auteur joint ; `limit` plafonné (défaut 100,
   max 500) car le journal est volumineux par nature.
 
-Prochaine étape : module `PDF` (fiche de commande + QR Code — renseigne
-`Order.pdfUrl`/`qrCodeUrl`, aujourd'hui `null`).
+### Module Notifications — détail
+
+- File de notifications in-app pour les utilisateurs du back-office
+  (Commercial/Admin/SuperAdmin). `NotificationsModule` est `@Global` (comme
+  `PrismaModule`) : les autres modules appellent `NotificationsService.notify()`
+  sans réimport.
+- `notify()` est tolérant aux erreurs (comme l'audit) : une notification est
+  un effet secondaire, son échec ne fait jamais échouer l'action métier.
+- Branché sur Orders : un changement de statut prévient le commercial assigné,
+  et l'assignation prévient le commercial nouvellement responsable.
+- Endpoints (authentifié, propres à l'utilisateur courant) : `GET /notifications`
+  (avec `unreadOnly`), `GET /notifications/unread-count`,
+  `PATCH /notifications/:id/read` (404 si la notification n'appartient pas à
+  l'appelant), `PATCH /notifications/read-all`.
+- Hors périmètre : l'envoi par canal externe (email/SMS, ex. code
+  d'invitation commercial) requiert un fournisseur non branché ; ce module
+  couvre la file interne consultable après authentification.
+
+Prochaine étape : module `Settings` (paramètres globaux clé/valeur : numéro
+WhatsApp de support, seuils, bascules A/B testing...).
 
 ### Module Dashboard — détail
 
