@@ -26,4 +26,12 @@ export default () => ({
   whatsapp: {
     supportNumber: process.env.WHATSAPP_SUPPORT_NUMBER,
   },
+
+  privacy: {
+    // Sel utilisé pour hasher l'IP des visiteurs anonymes (Visitor.ipHash) —
+    // évite de stocker l'IP en clair tout en permettant une déduplication
+    // approximative si besoin. Un défaut dev est fourni pour ne pas bloquer
+    // le démarrage local, mais DOIT être surchargé en production.
+    ipHashSalt: process.env.IP_HASH_SALT ?? 'dev-only-salt-change-me',
+  },
 });

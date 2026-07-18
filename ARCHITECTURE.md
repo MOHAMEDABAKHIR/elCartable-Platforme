@@ -98,6 +98,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Modules Schools, Grades, SchoolLists, Uploads (scénarios 1 & 2)
 - [x] Modules Categories, Products
 - [x] Module Orders
+- [x] Modules Visitors, Analytics
 - [ ] Frontend
 
 ### Modules Schools / Grades / SchoolLists / Uploads — détail
@@ -162,8 +163,30 @@ documentation Swagger — avant de passer au module suivant.
   `qrCodeUrl` restent `null` pour l'instant) : portée par les modules `PDF`
   et `Uploads`/`QrCode` à venir dans la feuille de route.
 
-Prochaine étape : modules `Visitors` / `Analytics` (tracking anonyme,
-événements génériques, métriques dérivées).
+Prochaine étape : module `Dashboard` (agrégations pour Admin/SuperAdmin).
+
+### Modules Visitors / Analytics — détail
+
+- `POST /visitors/identify` (public) — upsert du visiteur par `anonId` ;
+  l'IP n'est jamais reçue du client ni stockée en clair : elle est lue côté
+  serveur (`req.ip`) et hashée (SHA-256 salé, `IP_HASH_SALT`) avant d'être
+  persistée dans `Visitor.ipHash`, conformément à l'objectif d'anonymisation.
+- `POST /visitors/sessions` (public) — démarre une `VisitorSession` ; fait
+  l'upsert du visiteur au passage (idempotent) pour éviter un aller-retour
+  supplémentaire côté front. `PATCH /visitors/sessions/:id/end` (public)
+  marque `endedAt` + `exitPage`.
+- `GET /visitors`, `GET /visitors/:id` (Admin/SuperAdmin) — liste et détail
+  pour inspection back-office (compteur de sessions/événements).
+- `POST /analytics/events` (public) — enregistre un `AnalyticsEvent` rattaché
+  à une session existante (404 sinon) ; `metadata: Json` libre selon le
+  `type` (scroll %, élément cliqué, école recherchée, produit consulté...).
+- `GET /analytics/events` (Admin/SuperAdmin) — lecture brute filtrable
+  (type, session, période).
+- Ce module se limite volontairement à l'ingestion + lecture brute : le
+  calcul des métriques dérivées (panier moyen, taux d'abandon, temps moyen
+  avant validation) est porté par le futur module `Dashboard`, qui agrège
+  `AnalyticsEvent` avec les données `Order` — pas de duplication de la
+  logique d'agrégation ici.
 
 ### Modules Categories / Products — détail
 
