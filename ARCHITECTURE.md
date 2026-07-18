@@ -95,31 +95,32 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Structure monorepo
 - [x] Schéma Prisma complet
 - [x] Module Auth (JWT + Passport + flux d'invitation commercial + tests)
-- [ ] Modules métier (Schools, Grades, SchoolLists, Products, Categories...)
+- [x] Modules Schools, Grades, SchoolLists, Uploads (scénarios 1 & 2)
+- [ ] Modules Products, Categories, Orders
 - [ ] Frontend
 
-### Module Auth — détail de ce qui est livré
+### Modules Schools / Grades / SchoolLists / Uploads — détail
 
-- Connexion email + mot de passe (`POST /api/v1/auth/login`) via stratégie
-  Passport `local`, pour Commercial / Admin / Super Admin.
-- Flux d'invitation Commercial :
-  - `POST /api/v1/auth/invitations` (Admin/SuperAdmin uniquement, protégé par
-    `JwtAuthGuard` + `RolesGuard`) crée le compte avec `mustSetPassword: true`
-    et un code d'invitation à durée limitée.
-  - `POST /api/v1/auth/invitations/accept` (email + code + nouveau mot de
-    passe) active le compte et renvoie directement les tokens.
-- `POST /api/v1/auth/refresh` pour renouveler l'access token via le refresh
-  token, sans redemander les identifiants.
-- Guards réutilisables par tous les futurs modules : `JwtAuthGuard`,
-  `RolesGuard` + décorateur `@Roles(...)`, décorateur `@CurrentUser()`.
-- Gestion d'erreurs centralisée (`AllExceptionsFilter`) qui traduit aussi les
-  erreurs Prisma (contrainte unique, ressource introuvable) en réponses HTTP
-  cohérentes.
-- Script de seed (`prisma/seed.ts`) pour créer le tout premier Super Admin
-  (bootstrap, sinon personne ne peut inviter personne).
-- Tests unitaires du service (`auth.service.spec.ts`) : login, invitation,
-  code invalide/expiré, activation du compte.
-- Documentation Swagger sur chaque endpoint (`/docs`).
+- `GET /schools` (public) — recherche libre par nom/ville, écoles actives
+  uniquement. `GET /schools/admin` (Admin) liste tout, y compris inactives.
+  CRUD complet réservé à Admin/SuperAdmin ; suppression = désactivation
+  (`isActive: false`), jamais un vrai delete — écoles référencées par des
+  commandes.
+- `GET /grades` (public) même logique pour les niveaux scolaires.
+- **Scénario 1** — `GET /school-lists?schoolId=&gradeId=` renvoie la liste
+  officielle avec ses articles (produit catalogué ou libellé libre +
+  quantité). 404 explicite si aucune liste n'existe pour ce couple
+  école/niveau, pour orienter le front vers le scénario 2.
+  `POST /school-lists/official` (Admin) crée/remplace la liste officielle.
+- **Scénario 2** — `POST /school-lists/custom` (public) : le visiteur
+  soumet une liste via photo, fichier ou texte libre quand son école
+  n'existe pas. Validation conditionnelle (`fileUrl` requis pour
+  photo/fichier, `rawText` requis pour saisie manuelle).
+- `POST /uploads` (public, multipart) — upload générique utilisé pour la
+  photo/fichier du scénario 2 ; restreint aux images et PDF, 5 Mo max,
+  stockage disque en dev (à remplacer par un bucket S3-compatible en prod).
+- Tests unitaires sur les trois services (recherche publique, 404,
+  désactivation, scénario 1 vs 2 avec validation croisée des champs).
 
-Prochaine étape : modules `Schools`, `Grades`, `SchoolLists` (scénarios 1 & 2
-de commande) puis `Products`/`Categories`.
+Prochaine étape : modules `Products` / `Categories`, puis `Orders` +
+`OrderItems` + `OrderHistory` (le cœur du parcours de commande).
