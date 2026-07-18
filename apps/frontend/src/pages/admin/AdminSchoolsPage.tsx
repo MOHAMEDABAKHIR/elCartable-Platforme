@@ -1,0 +1,119 @@
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, apiErrorMessage } from '../../lib/api';
+import { fetchSchools } from '../../lib/queries';
+import { Alert, Badge, Button, Card, EmptyState, Field, Input, Spinner } from '../../components/ui';
+
+interface SchoolForm {
+  name: string;
+  city: string;
+  address: string;
+}
+
+const EMPTY: SchoolForm = { name: '', city: '', address: '' };
+
+export function AdminSchoolsPage() {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<SchoolForm>(EMPTY);
+  const [error, setError] = useState('');
+
+  const schools = useQuery({ queryKey: ['schools'], queryFn: () => fetchSchools() });
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      api.post('/schools', {
+        name: form.name,
+        city: form.city || undefined,
+        address: form.address || undefined,
+      }),
+    onSuccess: () => {
+      setForm(EMPTY);
+      queryClient.invalidateQueries({ queryKey: ['schools'] });
+    },
+    onError: (err) => setError(apiErrorMessage(err)),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/schools/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['schools'] }),
+    onError: (err) => setError(apiErrorMessage(err)),
+  });
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-extrabold text-brand-900">Écoles</h1>
+
+      <Card>
+        <h2 className="font-bold text-brand-800">Nouvelle école</h2>
+        <form
+          className="mt-4 grid gap-4 sm:grid-cols-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setError('');
+            createMutation.mutate();
+          }}
+        >
+          <Field label="Nom">
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          </Field>
+          <Field label="Ville">
+            <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+          </Field>
+          <Field label="Adresse">
+            <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          </Field>
+          {error && (
+            <div className="sm:col-span-3">
+              <Alert>{error}</Alert>
+            </div>
+          )}
+          <div className="sm:col-span-3">
+            <Button type="submit" variant="accent" disabled={createMutation.isPending}>
+              {createMutation.isPending ? 'Création…' : "Créer l'école"}
+            </Button>
+          </div>
+        </form>
+      </Card>
+
+      {schools.isLoading ? (
+        <Spinner />
+      ) : schools.data && schools.data.length > 0 ? (
+        <Card className="overflow-x-auto p-0">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-brand-100 text-left text-brand-500">
+                <th className="px-4 py-3">École</th>
+                <th className="px-4 py-3">Ville</th>
+                <th className="px-4 py-3 text-center">Statut</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {schools.data.map((s) => (
+                <tr key={s.id} className="border-b border-brand-50">
+                  <td className="px-4 py-3 font-medium text-brand-800">{s.name}</td>
+                  <td className="px-4 py-3 text-brand-500">{s.city ?? '—'}</td>
+                  <td className="px-4 py-3 text-center">
+                    <Badge className={s.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                      {s.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => deleteMutation.mutate(s.id)}
+                      className="text-sm text-red-500 hover:underline"
+                    >
+                      Désactiver
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      ) : (
+        <EmptyState title="Aucune école" description="Ajoutez votre première école ci-dessus." />
+      )}
+    </div>
+  );
+}
