@@ -102,6 +102,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Module Dashboard
 - [x] Module Audit (traçabilité transverse)
 - [x] Module Notifications (file in-app back-office)
+- [x] Module Settings (configuration globale clé/valeur)
 - [ ] Frontend
 
 ### Modules Schools / Grades / SchoolLists / Uploads — détail
@@ -203,8 +204,22 @@ documentation Swagger — avant de passer au module suivant.
   d'invitation commercial) requiert un fournisseur non branché ; ce module
   couvre la file interne consultable après authentification.
 
-Prochaine étape : module `Settings` (paramètres globaux clé/valeur : numéro
-WhatsApp de support, seuils, bascules A/B testing...).
+### Module Settings — détail
+
+- Store de configuration global clé/valeur (`Setting`) : `value` est un JSON
+  libre, ce qui évite une migration par nouveau paramètre (numéro WhatsApp de
+  support, seuils, bascules A/B testing...).
+- `PUT /settings/:key` (upsert), `GET /settings`, `GET /settings/:key`,
+  `DELETE /settings/:key` réservés à Admin/SuperAdmin. Les mutations sont
+  tracées dans le journal d'audit (`CREATE`/`UPDATE`/`DELETE` sur
+  `entityType: 'Setting'`).
+- `GET /settings/public` (sans authentification) n'expose qu'une **liste
+  blanche** de clés (`whatsappSupportNumber`, ...) sous forme de map clé →
+  valeur — on ne publie jamais l'intégralité du store. Route déclarée avant
+  `:key` pour primer sur le paramètre.
+
+Prochaine étape : le **Frontend** (React 19 + Vite + Tailwind 4) — dernière
+ligne de la feuille de route.
 
 ### Module Dashboard — détail
 
