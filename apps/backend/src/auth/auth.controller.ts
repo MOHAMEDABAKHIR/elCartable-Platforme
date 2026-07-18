@@ -25,7 +25,16 @@ export class AuthController {
   @ApiOperation({ summary: 'Connexion email + mot de passe (Commercial / Admin / Super Admin)' })
   async login(@Body() _dto: LoginDto, @Req() req: Request) {
     // LocalAuthGuard already validated credentials and attached req.user
-    return this.authService.login(req.user as AuthenticatedUser);
+    return this.authService.login(req.user as AuthenticatedUser, req.ip);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Déconnexion (trace une entrée LOGOUT dans le journal d’audit)' })
+  async logout(@CurrentUser() currentUser: AuthenticatedUser, @Req() req: Request) {
+    return this.authService.logout(currentUser, req.ip);
   }
 
   @Post('invitations')
