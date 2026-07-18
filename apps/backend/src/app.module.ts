@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import configuration from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
@@ -37,6 +38,15 @@ import { DashboardModule } from './dashboard/dashboard.module';
     AnalyticsModule,
     DashboardModule,
     // Modules à venir : Audit, Pdf, QrCode, Notifications, Settings.
+  ],
+  providers: [
+    // Applique le rate limiting configuré par ThrottlerModule à toutes les
+    // routes (protège notamment /auth/login du brute-force et les endpoints
+    // publics de l'abus).
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

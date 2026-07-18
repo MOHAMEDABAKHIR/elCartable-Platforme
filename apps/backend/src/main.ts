@@ -31,19 +31,26 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalInterceptors(new LoggingInterceptor());
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('elCartable API')
-    .setDescription('API REST de la plateforme elCartable — fournitures scolaires à la demande')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+  // La documentation Swagger expose toute la surface de l'API : on ne la
+  // publie pas en production pour éviter la fuite d'informations.
+  const swaggerEnabled = config.get<string>('env') !== 'production';
+  if (swaggerEnabled) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('elCartable API')
+      .setDescription('API REST de la plateforme elCartable — fournitures scolaires à la demande')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   const port = config.get<number>('port', 3000);
   await app.listen(port);
   logger.log(`elCartable API démarrée sur http://localhost:${port}/${apiPrefix}`);
-  logger.log(`Documentation Swagger disponible sur http://localhost:${port}/docs`);
+  if (swaggerEnabled) {
+    logger.log(`Documentation Swagger disponible sur http://localhost:${port}/docs`);
+  }
 }
 
 bootstrap();
