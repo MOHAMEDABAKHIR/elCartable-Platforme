@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { AnalyticsEventType, OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardQueryDto } from './dto/dashboard-query.dto';
+import { buildDateRangeFilter } from '../common/prisma/query.utils';
 
 /**
  * Module d'agrégation pour le back-office Admin/SuperAdmin. Ne stocke
@@ -16,7 +17,7 @@ export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOverview(query: DashboardQueryDto) {
-    const period = this.toDateRange(query);
+    const period = buildDateRangeFilter(query.from, query.to);
 
     const [orders, visitors] = await Promise.all([
       this.getOrderMetrics(period),
@@ -27,16 +28,6 @@ export class DashboardService {
   }
 
   // ---------------------------------------------------------------------
-
-  private toDateRange(query: DashboardQueryDto): Prisma.DateTimeFilter | undefined {
-    if (!query.from && !query.to) {
-      return undefined;
-    }
-    return {
-      ...(query.from ? { gte: new Date(query.from) } : {}),
-      ...(query.to ? { lte: new Date(query.to) } : {}),
-    };
-  }
 
   private async getOrderMetrics(createdAt: Prisma.DateTimeFilter | undefined) {
     const where: Prisma.OrderWhereInput = createdAt ? { createdAt } : {};
