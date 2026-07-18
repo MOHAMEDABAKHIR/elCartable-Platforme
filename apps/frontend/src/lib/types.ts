@@ -137,11 +137,20 @@ export interface CreateOrderPayload {
 
 export interface DashboardOverview {
   orders: {
-    total: number;
+    totalOrders: number;
     byStatus: Record<string, number>;
-    revenue: number | string;
+    totalRevenue: number | string;
+    averageCartValue: number | string;
+    nonCancelledOrders: number;
   };
-  [key: string]: unknown;
+  visitors: {
+    sessionsCount: number;
+    newVisitorsCount: number;
+    addToCartSessions: number;
+    convertedSessions: number;
+    abandonmentRate: number;
+    averageTimeToConversionSeconds: number | null;
+  };
 }
 
 export interface Paginated<T> {
