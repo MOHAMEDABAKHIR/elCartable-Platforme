@@ -94,8 +94,32 @@ documentation Swagger — avant de passer au module suivant.
 
 - [x] Structure monorepo
 - [x] Schéma Prisma complet
-- [ ] Module Auth
-- [ ] Modules métier
+- [x] Module Auth (JWT + Passport + flux d'invitation commercial + tests)
+- [ ] Modules métier (Schools, Grades, SchoolLists, Products, Categories...)
 - [ ] Frontend
 
-Prochaine étape : module `Auth` (JWT + flux d'invitation commercial).
+### Module Auth — détail de ce qui est livré
+
+- Connexion email + mot de passe (`POST /api/v1/auth/login`) via stratégie
+  Passport `local`, pour Commercial / Admin / Super Admin.
+- Flux d'invitation Commercial :
+  - `POST /api/v1/auth/invitations` (Admin/SuperAdmin uniquement, protégé par
+    `JwtAuthGuard` + `RolesGuard`) crée le compte avec `mustSetPassword: true`
+    et un code d'invitation à durée limitée.
+  - `POST /api/v1/auth/invitations/accept` (email + code + nouveau mot de
+    passe) active le compte et renvoie directement les tokens.
+- `POST /api/v1/auth/refresh` pour renouveler l'access token via le refresh
+  token, sans redemander les identifiants.
+- Guards réutilisables par tous les futurs modules : `JwtAuthGuard`,
+  `RolesGuard` + décorateur `@Roles(...)`, décorateur `@CurrentUser()`.
+- Gestion d'erreurs centralisée (`AllExceptionsFilter`) qui traduit aussi les
+  erreurs Prisma (contrainte unique, ressource introuvable) en réponses HTTP
+  cohérentes.
+- Script de seed (`prisma/seed.ts`) pour créer le tout premier Super Admin
+  (bootstrap, sinon personne ne peut inviter personne).
+- Tests unitaires du service (`auth.service.spec.ts`) : login, invitation,
+  code invalide/expiré, activation du compte.
+- Documentation Swagger sur chaque endpoint (`/docs`).
+
+Prochaine étape : modules `Schools`, `Grades`, `SchoolLists` (scénarios 1 & 2
+de commande) puis `Products`/`Categories`.
