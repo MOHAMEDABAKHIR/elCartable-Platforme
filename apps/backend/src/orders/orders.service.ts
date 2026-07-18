@@ -9,6 +9,7 @@ import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { AssignCommercialDto } from './dto/assign-commercial.dto';
 import { SearchOrderDto } from './dto/search-order.dto';
 import { TrackOrderDto } from './dto/track-order.dto';
+import { buildDateRangeFilter, containsInsensitive, ensureFound } from '../common/prisma/query.utils';
 
 /**
  * Ordre "logique" des statuts, utilisé uniquement pour interdire un retour
@@ -105,25 +106,19 @@ export class OrdersService {
 
   /** Back-office : liste filtrable (statut, école, niveau, commercial, période, recherche libre). */
   async findAll(query: SearchOrderDto) {
+    const createdAt = buildDateRangeFilter(query.from, query.to);
     const where: Prisma.OrderWhereInput = {
       ...(query.status ? { status: query.status } : {}),
       ...(query.schoolId ? { schoolId: query.schoolId } : {}),
       ...(query.gradeId ? { gradeId: query.gradeId } : {}),
       ...(query.commercialId ? { commercialId: query.commercialId } : {}),
-      ...(query.from || query.to
-        ? {
-            createdAt: {
-              ...(query.from ? { gte: new Date(query.from) } : {}),
-              ...(query.to ? { lte: new Date(query.to) } : {}),
-            },
-          }
-        : {}),
+      ...(createdAt ? { createdAt } : {}),
       ...(query.search
         ? {
             OR: [
-              { customerName: { contains: query.search, mode: 'insensitive' } },
+              { customerName: containsInsensitive(query.search) },
               { customerPhone: { contains: query.search } },
-              { orderNumber: { contains: query.search, mode: 'insensitive' } },
+              { orderNumber: containsInsensitive(query.search) },
             ],
           }
         : {}),
@@ -138,10 +133,7 @@ export class OrdersService {
 
   async findOne(id: string) {
     const order = await this.prisma.order.findUnique({ where: { id }, include: ORDER_INCLUDE });
-    if (!order) {
-      throw new NotFoundException('Commande introuvable.');
-    }
-    return order;
+    return ensureFound(order, 'Commande introuvable.');
   }
 
   /** Édition des infos client / adresse / note — chaque champ modifié génère sa propre entrée d'historique. */

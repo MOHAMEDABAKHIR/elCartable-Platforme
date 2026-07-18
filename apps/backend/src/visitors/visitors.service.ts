@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { buildDateRangeFilter, ensureFound } from '../common/prisma/query.utils';
 import { IdentifyVisitorDto } from './dto/identify-visitor.dto';
 import { StartVisitorSessionDto } from './dto/start-visitor-session.dto';
 import { EndVisitorSessionDto } from './dto/end-visitor-session.dto';
@@ -60,9 +61,7 @@ export class VisitorsService {
 
   async endSession(sessionId: string, dto: EndVisitorSessionDto) {
     const session = await this.prisma.visitorSession.findUnique({ where: { id: sessionId } });
-    if (!session) {
-      throw new NotFoundException('Session visiteur introuvable.');
-    }
+    ensureFound(session, 'Session visiteur introuvable.');
     return this.prisma.visitorSession.update({
       where: { id: sessionId },
       data: { endedAt: new Date(), exitPage: dto.exitPage },
@@ -71,16 +70,10 @@ export class VisitorsService {
 
   /** Back-office (Admin/SuperAdmin) : liste des visiteurs avec compteur de sessions. */
   async findAll(query: SearchVisitorDto) {
+    const firstSeen = buildDateRangeFilter(query.from, query.to);
     const where: Prisma.VisitorWhereInput = {
       ...(query.anonId ? { anonId: { contains: query.anonId } } : {}),
-      ...(query.from || query.to
-        ? {
-            firstSeen: {
-              ...(query.from ? { gte: new Date(query.from) } : {}),
-              ...(query.to ? { lte: new Date(query.to) } : {}),
-            },
-          }
-        : {}),
+      ...(firstSeen ? { firstSeen } : {}),
     };
 
     return this.prisma.visitor.findMany({
@@ -95,9 +88,6 @@ export class VisitorsService {
       where: { id },
       include: { sessions: { orderBy: { startedAt: 'desc' }, include: { _count: { select: { events: true } } } } },
     });
-    if (!visitor) {
-      throw new NotFoundException('Visiteur introuvable.');
-    }
-    return visitor;
+    return ensureFound(visitor, 'Visiteur introuvable.');
   }
 }

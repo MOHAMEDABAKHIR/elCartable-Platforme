@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { containsInsensitive, ensureFound } from '../common/prisma/query.utils';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductDto } from './dto/search-product.dto';
@@ -15,7 +16,7 @@ export class ProductsService {
       where: {
         isActive: true,
         ...(query.categoryId ? { categoryId: query.categoryId } : {}),
-        ...(query.search ? { name: { contains: query.search, mode: 'insensitive' } } : {}),
+        ...(query.search ? { name: containsInsensitive(query.search) } : {}),
       },
       include: { category: true },
       orderBy: { name: 'asc' },
@@ -34,10 +35,7 @@ export class ProductsService {
       where: { id },
       include: { category: true },
     });
-    if (!product) {
-      throw new NotFoundException('Produit introuvable.');
-    }
-    return product;
+    return ensureFound(product, 'Produit introuvable.');
   }
 
   async create(dto: CreateProductDto) {

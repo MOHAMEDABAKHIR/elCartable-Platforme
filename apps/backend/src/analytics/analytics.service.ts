@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { buildDateRangeFilter, ensureFound } from '../common/prisma/query.utils';
 import { CreateAnalyticsEventDto } from './dto/create-analytics-event.dto';
 import { SearchAnalyticsEventDto } from './dto/search-analytics-event.dto';
 
@@ -17,9 +18,7 @@ export class AnalyticsService {
 
   async create(dto: CreateAnalyticsEventDto) {
     const session = await this.prisma.visitorSession.findUnique({ where: { id: dto.sessionId } });
-    if (!session) {
-      throw new NotFoundException('Session visiteur introuvable.');
-    }
+    ensureFound(session, 'Session visiteur introuvable.');
 
     return this.prisma.analyticsEvent.create({
       data: {
@@ -32,17 +31,11 @@ export class AnalyticsService {
   }
 
   async findAll(query: SearchAnalyticsEventDto) {
+    const createdAt = buildDateRangeFilter(query.from, query.to);
     const where: Prisma.AnalyticsEventWhereInput = {
       ...(query.type ? { type: query.type } : {}),
       ...(query.sessionId ? { sessionId: query.sessionId } : {}),
-      ...(query.from || query.to
-        ? {
-            createdAt: {
-              ...(query.from ? { gte: new Date(query.from) } : {}),
-              ...(query.to ? { lte: new Date(query.to) } : {}),
-            },
-          }
-        : {}),
+      ...(createdAt ? { createdAt } : {}),
     };
 
     return this.prisma.analyticsEvent.findMany({

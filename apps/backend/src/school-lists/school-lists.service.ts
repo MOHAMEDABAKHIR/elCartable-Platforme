@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { SchoolListSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ensureFound } from '../common/prisma/query.utils';
 import { CreateOfficialSchoolListDto } from './dto/create-official-school-list.dto';
 import { SubmitCustomSchoolListDto } from './dto/submit-custom-school-list.dto';
 
@@ -28,13 +29,10 @@ export class SchoolListsService {
       },
     });
 
-    if (!list) {
-      throw new NotFoundException(
-        "Aucune liste officielle trouvée pour cette école et ce niveau. Le client peut soumettre une liste personnalisée (scénario 2).",
-      );
-    }
-
-    return list;
+    return ensureFound(
+      list,
+      "Aucune liste officielle trouvée pour cette école et ce niveau. Le client peut soumettre une liste personnalisée (scénario 2).",
+    );
   }
 
   /** Admin : crée ou remplace la liste officielle d'une école + niveau. */
@@ -111,9 +109,6 @@ export class SchoolListsService {
       where: { id },
       include: { items: { include: { product: true } }, school: true, grade: true },
     });
-    if (!list) {
-      throw new NotFoundException('Liste scolaire introuvable.');
-    }
-    return list;
+    return ensureFound(list, 'Liste scolaire introuvable.');
   }
 }

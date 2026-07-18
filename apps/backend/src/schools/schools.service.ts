@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { containsInsensitive, ensureFound } from '../common/prisma/query.utils';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { SearchSchoolDto } from './dto/search-school.dto';
@@ -19,8 +20,8 @@ export class SchoolsService {
         ...(query.search
           ? {
               OR: [
-                { name: { contains: query.search, mode: 'insensitive' } },
-                { city: { contains: query.search, mode: 'insensitive' } },
+                { name: containsInsensitive(query.search) },
+                { city: containsInsensitive(query.search) },
               ],
             }
           : {}),
@@ -36,10 +37,7 @@ export class SchoolsService {
 
   async findOne(id: string) {
     const school = await this.prisma.school.findUnique({ where: { id } });
-    if (!school) {
-      throw new NotFoundException('École introuvable.');
-    }
-    return school;
+    return ensureFound(school, 'École introuvable.');
   }
 
   async create(dto: CreateSchoolDto) {
