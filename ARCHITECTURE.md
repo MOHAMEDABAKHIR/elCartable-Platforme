@@ -97,7 +97,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Module Auth (JWT + Passport + flux d'invitation commercial + tests)
 - [x] Modules Schools, Grades, SchoolLists, Uploads (scénarios 1 & 2)
 - [x] Modules Categories, Products
-- [ ] Module Orders
+- [x] Module Orders
 - [ ] Frontend
 
 ### Modules Schools / Grades / SchoolLists / Uploads — détail
@@ -123,9 +123,47 @@ documentation Swagger — avant de passer au module suivant.
 - Tests unitaires sur les trois services (recherche publique, 404,
   désactivation, scénario 1 vs 2 avec validation croisée des champs).
 
-Prochaine étape : module `Orders` — le cœur du parcours (création sans
-compte, `OrderItem`, statuts avec timeline, `OrderHistory` append-only,
-génération PDF + QR Code).
+### Module Orders — détail
+
+- `POST /orders` (public) — création sans compte. Pour chaque article : si
+  `productId` est fourni, prix et libellé viennent du catalogue (le client
+  ne peut pas falsifier le prix depuis le front) ; sinon l'article est
+  "libre" (ex: issu d'une liste scolaire personnalisée non cataloguée) et
+  le prix vient du client, ajustable ensuite par le commercial. Aucune
+  entrée `OrderHistory` à la création : l'historique ne trace que les
+  changements après coup.
+- `orderNumber` humain (`ELC-2026-000123`) généré à partir du nombre de
+  commandes de l'année en cours ; une collision (unique constraint, deux
+  créations concurrentes) déclenche une régénération + retry côté service
+  plutôt qu'une transaction dédiée — le volume attendu ne justifie pas un
+  compteur séquentiel en base pour l'instant.
+- `POST /orders/track` (public) — suivi par `orderNumber` + `customerPhone`
+  combinés : un UUID/numéro seul ne suffit pas, pour empêcher qu'un tiers
+  devine l'URL et consulte les coordonnées d'un autre client.
+- `GET /orders` (Commercial/Admin/SuperAdmin) — liste filtrable (statut,
+  école, niveau, commercial assigné, période, recherche libre nom/téléphone/
+  numéro) : sert aux "commandes du jour" du back-office Commercial.
+- `PATCH /orders/:id` — édition client/adresse/note ; chaque champ modifié
+  génère sa propre entrée `OrderHistory` (`ADDRESS_UPDATED`, `NOTE_ADDED`,
+  `OTHER`).
+- `PATCH /orders/:id/status` — changement de statut avec garde-fou : aucune
+  action sur une commande déjà `DELIVERED`/`CANCELLED` (états terminaux), et
+  interdiction de revenir en arrière dans la séquence des statuts, sauf pour
+  `CANCELLED` qui reste atteignable depuis n'importe quel statut non
+  terminal. Le passage à `CONFIRMED` ajoute en plus une entrée
+  `ORDER_CONFIRMED`.
+- `PATCH /orders/:id/assign` — assignation/réassignation d'un commercial.
+- `POST /orders/:id/items`, `PATCH /orders/:id/items/:itemId`,
+  `DELETE /orders/:id/items/:itemId` — gestion des articles après création,
+  chacun tracé (`PRODUCT_ADDED` / `QUANTITY_CHANGED` / `PRODUCT_REMOVED`) et
+  recalcul du `totalAmount`. Impossible de retirer le dernier article d'une
+  commande.
+- Génération PDF + QR Code volontairement hors scope de ce module (`pdfUrl`/
+  `qrCodeUrl` restent `null` pour l'instant) : portée par les modules `PDF`
+  et `Uploads`/`QrCode` à venir dans la feuille de route.
+
+Prochaine étape : modules `Visitors` / `Analytics` (tracking anonyme,
+événements génériques, métriques dérivées).
 
 ### Modules Categories / Products — détail
 

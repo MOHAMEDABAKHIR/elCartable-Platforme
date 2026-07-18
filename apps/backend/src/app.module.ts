@@ -11,6 +11,7 @@ import { SchoolListsModule } from './school-lists/school-lists.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { ProductsModule } from './products/products.module';
     UploadsModule,
     CategoriesModule,
     ProductsModule,
-    // Modules à venir : Orders, Visitors, Analytics, Dashboard, Audit, Pdf,
+    OrdersModule,
+    // Modules à venir : Visitors, Analytics, Dashboard, Audit, Pdf,
     // QrCode, Notifications, Settings.
   ],
 })
