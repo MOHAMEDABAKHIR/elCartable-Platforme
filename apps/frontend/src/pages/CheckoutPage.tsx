@@ -17,7 +17,7 @@ interface CheckoutForm {
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const { items, totalAmount, context, clear } = useCart();
+  const { items, totalAmount, context } = useCart();
   const [error, setError] = useState('');
   const {
     register,
@@ -45,7 +45,6 @@ export function CheckoutPage() {
           unitPrice: i.productId ? undefined : i.unitPrice,
         })),
       });
-      clear();
       navigate('/commande/confirmee', { state: { order } });
     } catch (err) {
       setError(apiErrorMessage(err));

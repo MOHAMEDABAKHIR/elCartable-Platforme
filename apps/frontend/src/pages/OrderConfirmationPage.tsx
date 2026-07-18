@@ -1,11 +1,18 @@
+import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button, Card } from '../components/ui';
+import { useCart } from '../store/cart';
 import { formatMAD } from '../lib/format';
 import type { Order } from '../lib/types';
 
 export function OrderConfirmationPage() {
   const { state } = useLocation() as { state?: { order?: Order } };
   const order = state?.order;
+  const { clear } = useCart();
+
+  useEffect(() => {
+    if (order) clear();
+  }, [order, clear]);
 
   return (
     <div className="mx-auto max-w-lg text-center">
