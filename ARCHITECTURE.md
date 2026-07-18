@@ -102,7 +102,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Module Dashboard
 - [x] Module Audit (traçabilité transverse)
 - [x] Module Settings (configuration globale clé/valeur)
-- [ ] Frontend
+- [~] Frontend (React 19 + Vite + Tailwind 4 — parcours public + back-office)
 
 ### Modules Schools / Grades / SchoolLists / Uploads — détail
 
@@ -263,3 +263,27 @@ ligne de la feuille de route.
   indépendamment plus tard (module Audit).
 - Suppression produit = désactivation, jamais un vrai delete (référencé par
   `OrderItem` et `SchoolListItem`).
+
+### Frontend — détail (`apps/frontend`)
+
+- Stack : React 19 + Vite 6 + TailwindCSS 4 (`@tailwindcss/vite`, tokens de la
+  charte violet/jaune dans `@theme`), React Router 7, TanStack Query, React
+  Hook Form, axios.
+- **Parcours public** (sans compte) : landing + recherche école/niveau →
+  liste officielle (scénario 1, ajout au panier en un clic) ou envoi de liste
+  personnalisée photo/fichier/texte via `/uploads` + `/school-lists/custom`
+  (scénario 2) ; catalogue avec filtres ; panier persistant en
+  `localStorage` ; validation de commande → `POST /orders` ; page de suivi
+  (`POST /orders/track`) avec timeline des statuts.
+- **Back-office** (routes `/admin`, protégées par JWT + rôle) : connexion
+  (`/auth/login`, token en `localStorage`, `/auth/logout`), tableau de bord
+  (`/dashboard/overview`), liste des commandes filtrable, détail de commande
+  (changement de statut, édition/ajout/suppression d'articles, assignation
+  commercial, téléchargement de la fiche PDF via `/orders/:id/pdf`), CRUD
+  Produits et Écoles (Admin/SuperAdmin).
+- Le client axios pointe sur `VITE_API_URL` (défaut `/api/v1/v1` — préfixe
+  global `api/v1` + versioning URI `v1`) ; en dev, le proxy Vite redirige
+  `/api` vers le backend Nest (`VITE_BACKEND_ORIGIN`).
+- Reste à faire : gestion des catégories/niveaux et des utilisateurs
+  (commerciaux) côté admin — l'API de liste des utilisateurs n'existe pas
+  encore ; l'assignation d'un commercial se fait pour l'instant par ID.
