@@ -52,6 +52,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return this.resolvePrismaError(exception);
     }
 
+    // La base est injoignable / mal configurée : c'est une indisponibilité
+    // serveur (503), pas une erreur du client.
+    if (exception instanceof Prisma.PrismaClientInitializationError) {
+      return {
+        status: HttpStatus.SERVICE_UNAVAILABLE,
+        message: 'Service momentanément indisponible, réessayez plus tard.',
+        code: 'DATABASE_UNAVAILABLE',
+      };
+    }
+
+    // Tout le reste (y compris une requête Prisma mal formée
+    // `PrismaClientValidationError`, qui est un bug serveur, jamais la faute
+    // du client) reste une erreur interne générique.
     return {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'Une erreur interne est survenue.',
@@ -73,10 +86,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
           message: 'Ressource introuvable.',
           code: 'RECORD_NOT_FOUND',
         };
-      default:
+      case 'P2003':
         return {
           status: HttpStatus.BAD_REQUEST,
-          message: 'Erreur de base de données.',
+          message: 'Référence invalide : une ressource liée est introuvable.',
+          code: 'FOREIGN_KEY_CONSTRAINT_VIOLATION',
+        };
+      default:
+        // Tout autre code Prisma connu (timeout P2024, erreur de connexion,
+        // etc.) est un défaut serveur : le renvoyer en 400 masquerait un
+        // vrai problème d'infrastructure derrière une "faute du client".
+        return {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Une erreur interne est survenue.',
           code: `PRISMA_${exception.code}`,
         };
     }

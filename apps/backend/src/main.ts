@@ -46,4 +46,14 @@ async function bootstrap() {
   logger.log(`Documentation Swagger disponible sur http://localhost:${port}/docs`);
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  // Sans ce handler, un échec de démarrage (connexion DB, port occupé,
+  // config invalide) produit une "unhandled promise rejection" silencieuse :
+  // le process peut rester en vie sans serveur et sans code de sortie clair.
+  Logger.error(
+    "Échec du démarrage de l'application elCartable.",
+    error instanceof Error ? error.stack : String(error),
+    'Bootstrap',
+  );
+  process.exit(1);
+});
