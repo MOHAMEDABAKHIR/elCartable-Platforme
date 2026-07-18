@@ -1,18 +1,25 @@
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: false });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: false });
   const config = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
   const apiPrefix = config.get<string>('apiPrefix', 'api/v1');
   app.setGlobalPrefix(apiPrefix);
+
+  // Sert les fichiers disque (uploads scénario 2 + PDF/QR de commande générés)
+  // sous /uploads. Hors préfixe API. À remplacer par un bucket S3 en prod.
+  const uploadsDir = config.get<string>('uploads.dir', './uploads');
+  app.useStaticAssets(join(process.cwd(), uploadsDir), { prefix: '/uploads' });
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
   app.enableCors({
