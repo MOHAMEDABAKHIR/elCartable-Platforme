@@ -15,6 +15,16 @@ export async function fetchSchools(search?: string): Promise<School[]> {
   return toList<School>(data);
 }
 
+export async function fetchSchoolsAdmin(): Promise<School[]> {
+  const { data } = await api.get('/schools/admin');
+  return toList<School>(data);
+}
+
+export async function fetchProductsAdmin(): Promise<Product[]> {
+  const { data } = await api.get('/products/admin');
+  return toList<Product>(data);
+}
+
 export async function fetchGrades(): Promise<Grade[]> {
   const { data } = await api.get('/grades');
   return toList<Grade>(data);

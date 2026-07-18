@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, apiErrorMessage } from '../../lib/api';
-import { fetchCategories, fetchProducts } from '../../lib/queries';
+import { fetchCategories, fetchProductsAdmin } from '../../lib/queries';
 import { formatMAD } from '../../lib/format';
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Select, Spinner, Textarea } from '../../components/ui';
 
@@ -21,7 +21,7 @@ export function AdminProductsPage() {
   const [error, setError] = useState('');
 
   const categories = useQuery({ queryKey: ['categories'], queryFn: fetchCategories });
-  const products = useQuery({ queryKey: ['products', '', ''], queryFn: () => fetchProducts() });
+  const products = useQuery({ queryKey: ['products', 'admin'], queryFn: fetchProductsAdmin });
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -39,8 +39,9 @@ export function AdminProductsPage() {
     onError: (err) => setError(apiErrorMessage(err)),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/products/${id}`),
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      isActive ? api.delete(`/products/${id}`) : api.patch(`/products/${id}`, { isActive: true }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
     onError: (err) => setError(apiErrorMessage(err)),
   });
@@ -135,10 +136,10 @@ export function AdminProductsPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      onClick={() => deleteMutation.mutate(p.id)}
-                      className="text-sm text-red-500 hover:underline"
+                      onClick={() => toggleMutation.mutate({ id: p.id, isActive: p.isActive })}
+                      className={`text-sm hover:underline ${p.isActive ? 'text-red-500' : 'text-green-600'}`}
                     >
-                      Désactiver
+                      {p.isActive ? 'Désactiver' : 'Réactiver'}
                     </button>
                   </td>
                 </tr>

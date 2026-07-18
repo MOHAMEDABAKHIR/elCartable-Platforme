@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, apiErrorMessage } from '../../lib/api';
-import { fetchSchools } from '../../lib/queries';
+import { fetchSchoolsAdmin } from '../../lib/queries';
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Spinner } from '../../components/ui';
 
 interface SchoolForm {
@@ -17,7 +17,7 @@ export function AdminSchoolsPage() {
   const [form, setForm] = useState<SchoolForm>(EMPTY);
   const [error, setError] = useState('');
 
-  const schools = useQuery({ queryKey: ['schools'], queryFn: () => fetchSchools() });
+  const schools = useQuery({ queryKey: ['schools', 'admin'], queryFn: fetchSchoolsAdmin });
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -33,8 +33,9 @@ export function AdminSchoolsPage() {
     onError: (err) => setError(apiErrorMessage(err)),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/schools/${id}`),
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      isActive ? api.delete(`/schools/${id}`) : api.patch(`/schools/${id}`, { isActive: true }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['schools'] }),
     onError: (err) => setError(apiErrorMessage(err)),
   });
@@ -100,10 +101,10 @@ export function AdminSchoolsPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      onClick={() => deleteMutation.mutate(s.id)}
-                      className="text-sm text-red-500 hover:underline"
+                      onClick={() => toggleMutation.mutate({ id: s.id, isActive: s.isActive })}
+                      className={`text-sm hover:underline ${s.isActive ? 'text-red-500' : 'text-green-600'}`}
                     >
-                      Désactiver
+                      {s.isActive ? 'Désactiver' : 'Réactiver'}
                     </button>
                   </td>
                 </tr>
