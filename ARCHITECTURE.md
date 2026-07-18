@@ -102,6 +102,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Module Dashboard
 - [x] Module Audit (traçabilité transverse)
 - [x] Module PDF (fiche de commande + QR Code de suivi)
+- [x] Module Notifications (file in-app back-office)
 - [x] Module Settings (configuration globale clé/valeur)
 - [~] Frontend (React 19 + Vite + Tailwind 4 — parcours public + back-office)
 
@@ -186,6 +187,24 @@ documentation Swagger — avant de passer au module suivant.
   d'entité, période) avec l'auteur joint ; `limit` plafonné (défaut 100,
   max 500) car le journal est volumineux par nature.
 
+### Module Notifications — détail
+
+- File de notifications in-app pour les utilisateurs du back-office
+  (Commercial/Admin/SuperAdmin). `NotificationsModule` est `@Global` (comme
+  `PrismaModule`) : les autres modules appellent `NotificationsService.notify()`
+  sans réimport.
+- `notify()` est tolérant aux erreurs (comme l'audit) : une notification est
+  un effet secondaire, son échec ne fait jamais échouer l'action métier.
+- Branché sur Orders : un changement de statut prévient le commercial assigné,
+  et l'assignation prévient le commercial nouvellement responsable.
+- Endpoints (authentifié, propres à l'utilisateur courant) : `GET /notifications`
+  (avec `unreadOnly`), `GET /notifications/unread-count`,
+  `PATCH /notifications/:id/read` (404 si la notification n'appartient pas à
+  l'appelant), `PATCH /notifications/read-all`.
+- Hors périmètre : l'envoi par canal externe (email/SMS, ex. code
+  d'invitation commercial) requiert un fournisseur non branché ; ce module
+  couvre la file interne consultable après authentification.
+
 ### Module PDF — détail
 
 - `GET /orders/:id/pdf` (Commercial/Admin/SuperAdmin) génère la fiche de
@@ -203,9 +222,6 @@ documentation Swagger — avant de passer au module suivant.
   (`useStaticAssets`), ce qui rend résolvables à la fois les PDF/QR générés et
   les uploads du scénario 2. Stockage disque en dev — à remplacer par un
   bucket S3-compatible en prod (swap dans `uploads.dir` + le service).
-
-Prochaine étape : module `Notifications` (envoi du code d'invitation
-commercial, notifications de changement de statut de commande).
 
 ### Module Settings — détail
 

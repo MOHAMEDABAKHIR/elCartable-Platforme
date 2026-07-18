@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, OrderHistoryAction, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -40,7 +41,10 @@ const ORDER_INCLUDE = {
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /**
    * Création publique, sans compte. Pour chaque article :
@@ -249,6 +253,16 @@ export class OrdersService {
       });
     }
 
+    // Prévient le commercial assigné du changement de statut.
+    if (order.commercialId) {
+      await this.notifications.notify({
+        userId: order.commercialId,
+        title: `Commande ${order.orderNumber}`,
+        message: `Statut mis à jour : ${order.status} → ${dto.status}.`,
+        metadata: { orderId: id, orderNumber: order.orderNumber, status: dto.status },
+      });
+    }
+
     return this.findOne(id);
   }
 
@@ -271,6 +285,14 @@ export class OrdersService {
         oldValue: order.commercialId,
         newValue: dto.commercialId,
       },
+    });
+
+    // Prévient le commercial nouvellement assigné.
+    await this.notifications.notify({
+      userId: dto.commercialId,
+      title: `Commande ${order.orderNumber} vous a été assignée`,
+      message: `Vous êtes désormais responsable de la commande ${order.orderNumber}.`,
+      metadata: { orderId: id, orderNumber: order.orderNumber },
     });
 
     return this.findOne(id);

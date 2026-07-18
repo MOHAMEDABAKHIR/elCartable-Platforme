@@ -3,9 +3,11 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { OrderHistoryAction, OrderStatus, Prisma } from '@prisma/client';
 import { OrdersService } from '../orders.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 
 describe('OrdersService', () => {
   let service: OrdersService;
+  let notifications: { notify: jest.Mock };
   let prisma: {
     order: Record<string, jest.Mock>;
     orderItem: Record<string, jest.Mock>;
@@ -37,8 +39,14 @@ describe('OrdersService', () => {
       user: { findUnique: jest.fn() },
     };
 
+    notifications = { notify: jest.fn().mockResolvedValue(undefined) };
+
     const moduleRef = await Test.createTestingModule({
-      providers: [OrdersService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        OrdersService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: NotificationsService, useValue: notifications },
+      ],
     }).compile();
 
     service = moduleRef.get(OrdersService);
@@ -167,6 +175,39 @@ describe('OrdersService', () => {
       await expect(
         service.updateStatus('o1', { status: OrderStatus.CANCELLED }, 'user-1'),
       ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('notifies the assigned commercial of the status change', async () => {
+      prisma.order.findUnique
+        .mockResolvedValueOnce({
+          id: 'o1',
+          orderNumber: 'ELC-2026-000001',
+          status: OrderStatus.CALLING,
+          commercialId: 'com-1',
+          items: [],
+        })
+        .mockResolvedValueOnce({ id: 'o1', status: OrderStatus.CONFIRMED, items: [] });
+      prisma.order.update.mockResolvedValue({ id: 'o1', status: OrderStatus.CONFIRMED });
+
+      await service.updateStatus('o1', { status: OrderStatus.CONFIRMED }, 'user-1');
+
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'com-1',
+          metadata: expect.objectContaining({ orderId: 'o1', status: OrderStatus.CONFIRMED }),
+        }),
+      );
+    });
+
+    it('does not notify when no commercial is assigned', async () => {
+      prisma.order.findUnique
+        .mockResolvedValueOnce({ id: 'o1', status: OrderStatus.CALLING, items: [] })
+        .mockResolvedValueOnce({ id: 'o1', status: OrderStatus.CONFIRMED, items: [] });
+      prisma.order.update.mockResolvedValue({ id: 'o1' });
+
+      await service.updateStatus('o1', { status: OrderStatus.CONFIRMED }, 'user-1');
+
+      expect(notifications.notify).not.toHaveBeenCalled();
     });
 
     it('logs an extra ORDER_CONFIRMED entry when moving to CONFIRMED', async () => {
