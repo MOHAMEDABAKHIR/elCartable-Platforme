@@ -101,6 +101,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Modules Visitors, Analytics
 - [x] Module Dashboard
 - [x] Module Audit (traçabilité transverse)
+- [x] Module PDF (fiche de commande + QR Code de suivi)
 - [ ] Frontend
 
 ### Modules Schools / Grades / SchoolLists / Uploads — détail
@@ -184,8 +185,26 @@ documentation Swagger — avant de passer au module suivant.
   d'entité, période) avec l'auteur joint ; `limit` plafonné (défaut 100,
   max 500) car le journal est volumineux par nature.
 
-Prochaine étape : module `PDF` (fiche de commande + QR Code — renseigne
-`Order.pdfUrl`/`qrCodeUrl`, aujourd'hui `null`).
+### Module PDF — détail
+
+- `GET /orders/:id/pdf` (Commercial/Admin/SuperAdmin) génère la fiche de
+  commande à la volée (`pdf-lib`) et la renvoie en streaming
+  (`application/pdf`, `inline`). Le fichier et son QR Code sont aussi
+  persistés sur disque et renseignent `Order.pdfUrl`/`qrCodeUrl`, laissés
+  `null` par le module Orders.
+- Le QR (`qrcode`) encode l'URL publique de suivi
+  (`{frontendUrl}/suivi?commande=ELC-...`) ; la saisie du téléphone reste
+  exigée côté suivi, le QR n'expose donc aucune donnée client.
+- Chaque appel trace un `PDF_DOWNLOAD` dans le journal d'audit ; la première
+  génération ajoute en plus une entrée `PDF_GENERATED` sur la timeline de la
+  commande (`OrderHistory`), sans la dupliquer aux téléchargements suivants.
+- `main.ts` sert désormais le répertoire disque sous `/uploads`
+  (`useStaticAssets`), ce qui rend résolvables à la fois les PDF/QR générés et
+  les uploads du scénario 2. Stockage disque en dev — à remplacer par un
+  bucket S3-compatible en prod (swap dans `uploads.dir` + le service).
+
+Prochaine étape : module `Notifications` (envoi du code d'invitation
+commercial, notifications de changement de statut de commande).
 
 ### Module Dashboard — détail
 

@@ -21,6 +21,9 @@ export default () => ({
 
   uploads: {
     maxFileSizeMb: parseInt(process.env.UPLOAD_MAX_FILE_SIZE_MB ?? '5', 10),
+    // Répertoire disque de stockage (uploads + PDF de commande générés). À
+    // remplacer par un bucket S3-compatible en production — swap ici.
+    dir: process.env.UPLOAD_DIR ?? './uploads',
   },
 
   whatsapp: {
