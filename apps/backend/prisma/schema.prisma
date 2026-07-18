@@ -1,0 +1,413 @@
+// ==========================================================
+// elCartable — Prisma Schema
+// PostgreSQL (Neon)
+// ==========================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================================
+// ENUMS
+// ==========================================================
+
+enum UserRole {
+  COMMERCIAL
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OrderStatus {
+  CREATED // Commande créée
+  AWAITING_CALL // En attente d'appel
+  CALLING // Appel en cours
+  CONFIRMED // Commande confirmée
+  PREPARING // En préparation
+  READY // Prête
+  DELIVERING // En livraison
+  DELIVERED // Livrée
+  CANCELLED // Annulée
+}
+
+enum CustomerRole {
+  PARENT
+  STUDENT
+  OTHER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum SchoolListSource {
+  OFFICIAL // Liste officielle rattachée à école + niveau
+  CUSTOM_PHOTO // Scénario 2: photo envoyée par le client
+  CUSTOM_FILE // Scénario 2: fichier envoyé
+  CUSTOM_MANUAL // Scénario 2: saisie manuelle
+}
+
+enum OrderHistoryAction {
+  QUANTITY_CHANGED
+  PRODUCT_ADDED
+  PRODUCT_REMOVED
+  ADDRESS_UPDATED
+  NOTE_ADDED
+  STATUS_CHANGED
+  ORDER_CONFIRMED
+  PDF_GENERATED
+  OTHER
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  PDF_DOWNLOAD
+  VIEW
+  EXPORT
+}
+
+enum AnalyticsEventType {
+  PAGE_VIEW
+  SCROLL
+  CLICK
+  SCHOOL_SEARCH
+  PRODUCT_VIEW
+  ADD_TO_CART
+  CART_ABANDON
+  CONVERSION
+}
+
+// ==========================================================
+// AUTH / USERS (Commercial, Admin, Super Admin)
+// ==========================================================
+
+model User {
+  id                String     @id @default(uuid())
+  email             String     @unique
+  password          String? // null until first login completed (commercial invite flow)
+  fullName          String
+  phone             String?
+  role              UserRole
+  isActive          Boolean    @default(true)
+  mustSetPassword   Boolean    @default(false) // true for commercial on first invite
+  invitationCode    String?    @unique
+  invitationExpires DateTime?
+  lastLoginAt       DateTime?
+  createdById       String?
+  createdBy         User?      @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdUsers      User[]     @relation("UserCreatedBy")
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  ordersHandled     Order[]        @relation("OrderCommercial")
+  orderHistories    OrderHistory[]
+  auditLogs         AuditLog[]
+
+  @@index([role])
+  @@map("users")
+}
+
+// ==========================================================
+// SCHOOLS / GRADES / SCHOOL LISTS
+// ==========================================================
+
+model School {
+  id        String   @id @default(uuid())
+  name      String
+  city      String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schoolLists SchoolList[]
+  orders      Order[]
+
+  @@index([name])
+  @@map("schools")
+}
+
+model Grade {
+  id        String   @id @default(uuid())
+  name      String // e.g. "CP", "6ème", "Tronc Commun"
+  cycle     String? // Primaire / Collège / Lycée
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schoolLists SchoolList[]
+  orders      Order[]
+
+  @@map("grades")
+}
+
+model SchoolList {
+  id        String           @id @default(uuid())
+  schoolId  String?
+  school    School?          @relation(fields: [schoolId], references: [id])
+  gradeId   String?
+  grade     Grade?           @relation(fields: [gradeId], references: [id])
+  source    SchoolListSource @default(OFFICIAL)
+  fileUrl   String? // scénario 2: photo/fichier uploadé
+  rawText   String? // scénario 2: saisie manuelle
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  items SchoolListItem[]
+
+  @@index([schoolId, gradeId])
+  @@map("school_lists")
+}
+
+model SchoolListItem {
+  id           String     @id @default(uuid())
+  schoolListId String
+  schoolList   SchoolList @relation(fields: [schoolListId], references: [id], onDelete: Cascade)
+  productId    String?
+  product      Product?   @relation(fields: [productId], references: [id])
+  label        String // libellé libre si pas de produit catalogué
+  quantity     Int        @default(1)
+
+  @@map("school_list_items")
+}
+
+// ==========================================================
+// PRODUCTS / CATEGORIES
+// ==========================================================
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryParent", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryParent")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  sku         String?  @unique
+  price       Decimal  @db.Decimal(10, 2)
+  imageUrl    String?
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  stock       Int      @default(0)
+  isBook      Boolean  @default(false) // manuel scolaire vs fourniture
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  schoolListItems SchoolListItem[]
+  orderItems      OrderItem[]
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+// ==========================================================
+// ORDERS
+// ==========================================================
+
+model Order {
+  id             String       @id @default(uuid())
+  orderNumber    String       @unique // human-readable ref, e.g. ELC-2026-000123
+
+  // Client (no account required)
+  customerName   String
+  customerPhone  String
+  customerEmail  String?
+  customerGender Gender?
+  customerRole   CustomerRole?
+  deliveryAddress String?
+
+  schoolId String?
+  school   School? @relation(fields: [schoolId], references: [id])
+  gradeId  String?
+  grade    Grade?  @relation(fields: [gradeId], references: [id])
+
+  status       OrderStatus @default(CREATED)
+  note         String?
+  totalAmount  Decimal     @db.Decimal(10, 2) @default(0)
+
+  commercialId String?
+  commercial   User?   @relation("OrderCommercial", fields: [commercialId], references: [id])
+
+  qrCodeUrl  String?
+  pdfUrl     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items      OrderItem[]
+  history    OrderHistory[]
+
+  @@index([status])
+  @@index([commercialId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+  label     String // snapshot du nom produit au moment de la commande
+  quantity  Int      @default(1)
+  unitPrice Decimal  @db.Decimal(10, 2)
+
+  @@map("order_items")
+}
+
+model OrderHistory {
+  id        String             @id @default(uuid())
+  orderId   String
+  order     Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?              @relation(fields: [userId], references: [id])
+  action    OrderHistoryAction
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime           @default(now())
+
+  @@index([orderId])
+  @@map("order_history")
+}
+
+// ==========================================================
+// VISITORS / ANALYTICS
+// ==========================================================
+
+model Visitor {
+  id         String   @id @default(uuid())
+  anonId     String   @unique // cookie/localStorage id
+  userAgent  String?
+  ipHash     String? // IP hashée pour anonymisation
+  firstSeen  DateTime @default(now())
+  lastSeen   DateTime @updatedAt
+
+  sessions VisitorSession[]
+
+  @@map("visitors")
+}
+
+model VisitorSession {
+  id         String    @id @default(uuid())
+  visitorId  String
+  visitor    Visitor   @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  entryPage  String?
+  exitPage   String?
+
+  events AnalyticsEvent[]
+
+  @@map("visitor_sessions")
+}
+
+model AnalyticsEvent {
+  id        String             @id @default(uuid())
+  sessionId String
+  session   VisitorSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  type      AnalyticsEventType
+  path      String?
+  metadata  Json? // payload libre: scroll %, élément cliqué, école recherchée, produit consulté, etc.
+  createdAt DateTime           @default(now())
+
+  @@index([type])
+  @@index([sessionId])
+  @@map("analytics_events")
+}
+
+// ==========================================================
+// A/B TESTING (architecture, activable plus tard)
+// ==========================================================
+
+model ABTest {
+  id        String        @id @default(uuid())
+  key       String        @unique // ex: "landing_hero_v2"
+  name      String
+  isActive  Boolean       @default(false)
+  createdAt DateTime      @default(now())
+
+  variants ABTestVariant[]
+
+  @@map("ab_tests")
+}
+
+model ABTestVariant {
+  id           String @id @default(uuid())
+  abTestId     String
+  abTest       ABTest @relation(fields: [abTestId], references: [id], onDelete: Cascade)
+  key          String // ex: "control", "variant_a"
+  weight       Int    @default(50) // % d'allocation
+
+  @@unique([abTestId, key])
+  @@map("ab_test_variants")
+}
+
+// ==========================================================
+// AUDIT / TRACABILITY
+// ==========================================================
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id])
+  action     AuditAction
+  entityType String? // ex: "Order", "Product"
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime    @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+// ==========================================================
+// NOTIFICATIONS / SETTINGS
+// ==========================================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
