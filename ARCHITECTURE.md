@@ -96,7 +96,8 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Schéma Prisma complet
 - [x] Module Auth (JWT + Passport + flux d'invitation commercial + tests)
 - [x] Modules Schools, Grades, SchoolLists, Uploads (scénarios 1 & 2)
-- [ ] Modules Products, Categories, Orders
+- [x] Modules Categories, Products
+- [ ] Module Orders
 - [ ] Frontend
 
 ### Modules Schools / Grades / SchoolLists / Uploads — détail
@@ -122,5 +123,23 @@ documentation Swagger — avant de passer au module suivant.
 - Tests unitaires sur les trois services (recherche publique, 404,
   désactivation, scénario 1 vs 2 avec validation croisée des champs).
 
-Prochaine étape : modules `Products` / `Categories`, puis `Orders` +
-`OrderItems` + `OrderHistory` (le cœur du parcours de commande).
+Prochaine étape : module `Orders` — le cœur du parcours (création sans
+compte, `OrderItem`, statuts avec timeline, `OrderHistory` append-only,
+génération PDF + QR Code).
+
+### Modules Categories / Products — détail
+
+- `GET /categories` (public) renvoie l'arborescence (catégories racines +
+  enfants) pour les filtres du catalogue.
+- Suppression de catégorie = vrai `delete` (pas de soft delete) mais
+  seulement si elle est vide (pas d'enfants ni de produits) — sinon 400.
+  Contrairement aux écoles/produits, une catégorie n'est jamais référencée
+  par une commande historique.
+- `GET /products` (public) recherche par nom/catégorie, produits actifs
+  uniquement — utilisé quand le visiteur ajoute des fournitures en plus de
+  la liste officielle.
+- `PATCH /products/:id/stock` est un endpoint dédié (séparé de l'édition
+  générale) pour que la gestion de stock puisse être auditée/tracée
+  indépendamment plus tard (module Audit).
+- Suppression produit = désactivation, jamais un vrai delete (référencé par
+  `OrderItem` et `SchoolListItem`).

@@ -9,6 +9,8 @@ import { SchoolsModule } from './schools/schools.module';
 import { GradesModule } from './grades/grades.module';
 import { SchoolListsModule } from './school-lists/school-lists.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { CategoriesModule } from './categories/categories.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
@@ -24,8 +26,10 @@ import { UploadsModule } from './uploads/uploads.module';
     GradesModule,
     SchoolListsModule,
     UploadsModule,
-    // Modules à venir : Products, Categories, Orders, Visitors, Analytics,
-    // Dashboard, Audit, Pdf, QrCode, Notifications, Settings.
+    CategoriesModule,
+    ProductsModule,
+    // Modules à venir : Orders, Visitors, Analytics, Dashboard, Audit, Pdf,
+    // QrCode, Notifications, Settings.
   ],
 })
 export class AppModule {}
