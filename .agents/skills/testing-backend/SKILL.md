@@ -28,5 +28,11 @@ Global prefix is `api/v1` AND URI versioning adds a `v1` segment, so real paths 
 - P2002 (409 UNIQUE) is NOT reachable via public routes (order create retries it; visitor uses upsert) — needs an auth'd back-office create on a unique field (categories.slug, products.sku, users.email).
 - Bootstrap `.catch()` test: run compiled `node dist/src/main.js` with an unreachable `DATABASE_URL` → logs `Échec du démarrage` + exits code 1.
 
+## Full-stack (UI) E2E testing
+- No `DATABASE_URL` secret is required to test locally: a **local docker Postgres** works fine (point `DATABASE_URL` at it, then `npx prisma db push`).
+- The seed (`npm run prisma:seed`) only creates the **super admin** — it does NOT create catalogue/school data. To exercise the full golden path you must manually create: schools, grades, categories, products, at least one **official school list** (school+grade → items), and a **COMMERCIAL** user. Create them via the authenticated back-office API (`/api/v1/v1/...`) or by inserting directly in the DB.
+- Frontend: `npm run dev --workspace=apps/frontend` (Vite on `:5173`, proxy `/api` → `http://localhost:3000`). Client axios base is `VITE_API_URL` (default `/api/v1/v1`).
+- Golden path to verify: landing (school+grade) → official list → cart → checkout → **confirmation page shows orderNumber** → tracking (number+phone). Back-office: login → dashboard → orders (status/items/assign/PDF) → product/school CRUD (create + deactivate/reactivate via admin endpoints).
+
 ## Devin Secrets Needed
-- `DATABASE_URL` (Neon Postgres connection string), repo-scoped.
+- `DATABASE_URL` (Neon Postgres connection string), repo-scoped. Optional for local testing — a local docker Postgres is sufficient.
