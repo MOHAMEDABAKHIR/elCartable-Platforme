@@ -1,5 +1,5 @@
 import { plainToInstance } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString, MinLength, validateSync } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, validateSync } from 'class-validator';
 
 enum NodeEnv {
   Development = 'development',
@@ -19,16 +19,13 @@ class EnvironmentVariables {
   @IsString()
   DATABASE_URL: string;
 
+  // La longueur minimale (>= 32) n'est imposée qu'en production, via
+  // assertProductionSecrets — le dev doit pouvoir démarrer avec les valeurs
+  // d'exemple plus courtes de .env.example.
   @IsString()
-  @MinLength(32, {
-    message: 'JWT_ACCESS_SECRET doit contenir au moins 32 caractères.',
-  })
   JWT_ACCESS_SECRET: string;
 
   @IsString()
-  @MinLength(32, {
-    message: 'JWT_REFRESH_SECRET doit contenir au moins 32 caractères.',
-  })
   JWT_REFRESH_SECRET: string;
 
   @IsString()
@@ -48,11 +45,19 @@ const FORBIDDEN_PRODUCTION_SECRETS = new Set([
   'dev-only-salt-change-me',
 ]);
 
+const MIN_SECRET_LENGTH = 32;
+
 function assertProductionSecrets(config: EnvironmentVariables) {
   const problems: string[] = [];
 
   if (!config.IP_HASH_SALT) {
     problems.push('IP_HASH_SALT est requis en production.');
+  }
+
+  for (const name of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
+    if ((config[name]?.length ?? 0) < MIN_SECRET_LENGTH) {
+      problems.push(`${name} doit contenir au moins ${MIN_SECRET_LENGTH} caractères.`);
+    }
   }
 
   const secrets: Array<[string, string | undefined]> = [

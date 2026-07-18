@@ -17,6 +17,7 @@ import { VisitorsModule } from './visitors/visitors.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AuditModule } from './audit/audit.module';
+import { SettingsModule } from './settings/settings.module';
 import { PdfModule } from './pdf/pdf.module';
 
 @Module({
@@ -40,8 +41,9 @@ import { PdfModule } from './pdf/pdf.module';
     AnalyticsModule,
     DashboardModule,
     AuditModule,
+    SettingsModule,
     PdfModule,
-    // Modules à venir : Notifications, Settings.
+    // Modules à venir : Notifications.
   ],
   providers: [
     // Applique le rate limiting configuré par ThrottlerModule à toutes les
