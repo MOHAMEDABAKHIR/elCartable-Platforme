@@ -6,10 +6,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '@prisma/client';
+import { AuditAction, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { InviteCommercialDto } from './dto/invite-commercial.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { AuthenticatedUser, JwtPayload } from './types/authenticated-user.type';
@@ -24,6 +25,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {}
 
   // ==========================================================
@@ -46,13 +48,33 @@ export class AuthService {
     return { id: user.id, email: user.email, role: user.role, fullName: user.fullName };
   }
 
-  async login(user: AuthenticatedUser) {
+  async login(user: AuthenticatedUser, ipAddress?: string) {
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
 
+    await this.auditService.log({
+      action: AuditAction.LOGIN,
+      userId: user.id,
+      entityType: 'User',
+      entityId: user.id,
+      ipAddress,
+    });
+
     return this.issueTokens(user);
+  }
+
+  async logout(user: AuthenticatedUser, ipAddress?: string) {
+    await this.auditService.log({
+      action: AuditAction.LOGOUT,
+      userId: user.id,
+      entityType: 'User',
+      entityId: user.id,
+      ipAddress,
+    });
+
+    return { success: true };
   }
 
   // ==========================================================

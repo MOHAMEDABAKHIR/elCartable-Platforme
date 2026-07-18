@@ -100,6 +100,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Module Orders
 - [x] Modules Visitors, Analytics
 - [x] Module Dashboard
+- [x] Module Audit (traçabilité transverse)
 - [ ] Frontend
 
 ### Modules Schools / Grades / SchoolLists / Uploads — détail
@@ -164,9 +165,27 @@ documentation Swagger — avant de passer au module suivant.
   `qrCodeUrl` restent `null` pour l'instant) : portée par les modules `PDF`
   et `Uploads`/`QrCode` à venir dans la feuille de route.
 
-Prochaine étape : module `Audit` (traçabilité transverse : connexions,
-créations/modifications/suppressions, téléchargements PDF, consultations,
-exports).
+### Module Audit — détail
+
+- `AuditLog` couvre toutes les actions système (connexion, déconnexion,
+  création, modification, suppression, téléchargement PDF, consultation,
+  export) sur n'importe quelle entité — distinct de `OrderHistory`, qui ne
+  trace que le cycle de vie métier d'une commande.
+- `AuditModule` est `@Global` (comme `PrismaModule`) : `AuditService` s'injecte
+  dans n'importe quel module (Auth, Orders, futur PDF...) sans réimport.
+- `AuditService.log()` est volontairement tolérant aux erreurs : un échec de
+  traçabilité est journalisé mais jamais propagé, pour ne pas faire échouer
+  l'action métier qui l'a déclenchée.
+- L'IP de l'appelant est lue côté serveur (`req.ip`) puis passée au service —
+  jamais reçue du client.
+- Auth branche les premiers événements : `POST /auth/login` trace `LOGIN`,
+  `POST /auth/logout` (nouveau, gardé JWT) trace `LOGOUT`.
+- `GET /audit` (Admin/SuperAdmin) — lecture filtrable (action, auteur, type/id
+  d'entité, période) avec l'auteur joint ; `limit` plafonné (défaut 100,
+  max 500) car le journal est volumineux par nature.
+
+Prochaine étape : module `PDF` (fiche de commande + QR Code — renseigne
+`Order.pdfUrl`/`qrCodeUrl`, aujourd'hui `null`).
 
 ### Module Dashboard — détail
 

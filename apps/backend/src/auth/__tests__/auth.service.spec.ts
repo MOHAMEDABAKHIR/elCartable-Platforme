@@ -6,9 +6,11 @@ import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from '../auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../../audit/audit.service';
 
 describe('AuthService', () => {
   let service: AuthService;
+  let audit: { log: jest.Mock };
   let prisma: {
     user: {
       findUnique: jest.Mock;
@@ -25,11 +27,13 @@ describe('AuthService', () => {
         create: jest.fn(),
       },
     };
+    audit = { log: jest.fn().mockResolvedValue(undefined) };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: PrismaService, useValue: prisma },
+        { provide: AuditService, useValue: audit },
         {
           provide: JwtService,
           useValue: {
@@ -98,6 +102,40 @@ describe('AuthService', () => {
         role: UserRole.COMMERCIAL,
         fullName: 'Test',
       });
+    });
+  });
+
+  describe('login / logout', () => {
+    const user = {
+      id: '1',
+      email: 'a@a.com',
+      role: UserRole.ADMIN,
+      fullName: 'Admin',
+    };
+
+    it('records a LOGIN audit entry with the caller IP', async () => {
+      prisma.user.update.mockResolvedValue(user);
+
+      await service.login(user, '10.0.0.1');
+
+      expect(audit.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGIN',
+          userId: '1',
+          entityType: 'User',
+          entityId: '1',
+          ipAddress: '10.0.0.1',
+        }),
+      );
+    });
+
+    it('records a LOGOUT audit entry', async () => {
+      const result = await service.logout(user, '10.0.0.1');
+
+      expect(audit.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'LOGOUT', userId: '1', ipAddress: '10.0.0.1' }),
+      );
+      expect(result).toEqual({ success: true });
     });
   });
 
