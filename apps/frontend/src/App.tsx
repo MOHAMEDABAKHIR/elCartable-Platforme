@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import { AdminLayout, PublicLayout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LandingPage } from './pages/LandingPage';
+import { CelouerLandingPage } from './pages/CelouerLandingPage';
 import { CatalogPage } from './pages/CatalogPage';
 import { SchoolListPage } from './pages/SchoolListPage';
 import { CartPage } from './pages/CartPage';
@@ -32,6 +33,8 @@ export function App() {
         <Route path="suivi" element={<TrackPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
+
+      <Route path="/landing" element={<CelouerLandingPage />} />
 
       <Route path="/connexion" element={<LoginPage />} />
       <Route path="/activer-compte" element={<ActivateInvitationPage />} />
