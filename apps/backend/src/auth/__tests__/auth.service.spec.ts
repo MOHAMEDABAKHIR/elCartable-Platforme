@@ -177,6 +177,42 @@ describe('AuthService', () => {
     });
   });
 
+  describe('inviteAdmin', () => {
+    it('throws when a user with this email already exists', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'existing' });
+
+      await expect(
+        service.inviteAdmin({ email: 'a@a.com', fullName: 'Test' }, 'super-admin-id'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('creates an admin with mustSetPassword=true and an invitation code', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue({
+        id: '3',
+        email: 'admin@a.com',
+        role: UserRole.ADMIN,
+      });
+
+      const result = await service.inviteAdmin(
+        { email: 'admin@a.com', fullName: 'Admin Test' },
+        'super-admin-id',
+      );
+
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: 'admin@a.com',
+            role: UserRole.ADMIN,
+            mustSetPassword: true,
+            createdById: 'super-admin-id',
+          }),
+        }),
+      );
+      expect(result.invitationCode).toBeDefined();
+    });
+  });
+
   describe('acceptInvitation', () => {
     it('throws when invitation code is wrong', async () => {
       prisma.user.findUnique.mockResolvedValue({

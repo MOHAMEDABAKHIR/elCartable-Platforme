@@ -20,6 +20,7 @@ import { AuditModule } from './audit/audit.module';
 import { SettingsModule } from './settings/settings.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PdfModule } from './pdf/pdf.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { PdfModule } from './pdf/pdf.module';
     SettingsModule,
     NotificationsModule,
     PdfModule,
+    UsersModule,
     // Modules à venir : QrCode.
   ],
   providers: [

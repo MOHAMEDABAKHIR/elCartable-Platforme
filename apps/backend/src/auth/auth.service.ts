@@ -12,6 +12,7 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { InviteCommercialDto } from './dto/invite-commercial.dto';
+import { InviteAdminDto } from './dto/invite-admin.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { AuthenticatedUser, JwtPayload } from './types/authenticated-user.type';
 
@@ -78,12 +79,28 @@ export class AuthService {
   }
 
   // ==========================================================
-  // COMMERCIAL INVITATION FLOW
-  // Admin creates the account -> Commercial logs in with email +
-  // invitation code -> must set a password -> normal login afterwards.
+  // INVITATION FLOW (shared by Admin -> Commercial, and
+  // SuperAdmin -> Admin)
+  // L'utilisateur invitant crée le compte -> l'invité se connecte avec
+  // email + code d'invitation -> doit définir un mot de passe -> connexion
+  // normale ensuite. L'autorisation (qui a le droit d'inviter quel rôle)
+  // est appliquée au niveau du contrôleur (@Roles) : SuperAdmin seul pour
+  // les Admins ; Admin/SuperAdmin pour les Commerciaux.
   // ==========================================================
 
   async inviteCommercial(dto: InviteCommercialDto, invitedById: string) {
+    return this.createInvitedUser(dto, UserRole.COMMERCIAL, invitedById);
+  }
+
+  async inviteAdmin(dto: InviteAdminDto, invitedById: string) {
+    return this.createInvitedUser(dto, UserRole.ADMIN, invitedById);
+  }
+
+  private async createInvitedUser(
+    dto: { email: string; fullName: string; phone?: string },
+    role: UserRole,
+    invitedById: string,
+  ) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) {
       throw new BadRequestException('Un utilisateur avec cet email existe déjà.');
@@ -98,7 +115,7 @@ export class AuthService {
         email: dto.email,
         fullName: dto.fullName,
         phone: dto.phone,
-        role: UserRole.COMMERCIAL,
+        role,
         mustSetPassword: true,
         invitationCode,
         invitationExpires,
@@ -106,14 +123,23 @@ export class AuthService {
       },
     });
 
+    await this.auditService.log({
+      action: AuditAction.CREATE,
+      userId: invitedById,
+      entityType: 'User',
+      entityId: user.id,
+      metadata: { role, email: user.email },
+    });
+
     // NOTE: sending the invitation code by email/SMS is delegated to the
     // Notifications module (not yet implemented). For now it's returned
-    // so an admin can transmit it manually.
-    this.logger.log(`Commercial invité: ${user.email} (code valable ${expiresInHours}h)`);
+    // so the inviting Admin/SuperAdmin can transmit it manually.
+    this.logger.log(`${role} invité: ${user.email} (code valable ${expiresInHours}h)`);
 
     return {
       id: user.id,
       email: user.email,
+      role: user.role,
       invitationCode,
       expiresAt: invitationExpires,
     };

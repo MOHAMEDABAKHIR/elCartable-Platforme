@@ -12,6 +12,7 @@ import { LoginDto } from './dto/login.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { InviteCommercialDto } from './dto/invite-commercial.dto';
+import { InviteAdminDto } from './dto/invite-admin.dto';
 import { AuthenticatedUser } from './types/authenticated-user.type';
 
 @ApiTags('Auth')
@@ -41,12 +42,24 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Inviter un nouveau commercial (Admin uniquement)" })
+  @ApiOperation({ summary: 'Inviter un nouveau commercial (Admin ou Super Admin)' })
   async inviteCommercial(
     @Body() dto: InviteCommercialDto,
     @CurrentUser() currentUser: AuthenticatedUser,
   ) {
     return this.authService.inviteCommercial(dto, currentUser.id);
+  }
+
+  @Post('invitations/admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Inviter un nouvel administrateur (Super Admin uniquement)' })
+  async inviteAdmin(
+    @Body() dto: InviteAdminDto,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ) {
+    return this.authService.inviteAdmin(dto, currentUser.id);
   }
 
   @Post('invitations/accept')

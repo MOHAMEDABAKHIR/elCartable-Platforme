@@ -63,8 +63,10 @@ export function PublicLayout() {
 const ADMIN_NAV = [
   { to: '/admin', label: 'Tableau de bord', end: true },
   { to: '/admin/commandes', label: 'Commandes' },
-  { to: '/admin/produits', label: 'Produits' },
-  { to: '/admin/ecoles', label: 'Écoles' },
+  { to: '/admin/produits', label: 'Produits', roles: ['ADMIN', 'SUPER_ADMIN'] },
+  { to: '/admin/ecoles', label: 'Écoles', roles: ['ADMIN', 'SUPER_ADMIN'] },
+  { to: '/admin/catalogue-refs', label: 'Catégories & niveaux', roles: ['ADMIN', 'SUPER_ADMIN'] },
+  { to: '/admin/utilisateurs', label: 'Utilisateurs', roles: ['ADMIN', 'SUPER_ADMIN'] },
 ];
 
 export function AdminLayout() {
@@ -76,12 +78,14 @@ export function AdminLayout() {
     navigate('/connexion');
   };
 
+  const visibleNav = ADMIN_NAV.filter((item) => !item.roles || (user && item.roles.includes(user.role)));
+
   return (
     <div className="flex min-h-full">
       <aside className="hidden w-60 flex-col border-r border-brand-100 bg-white p-4 md:flex">
         <Logo />
         <nav className="mt-8 flex flex-1 flex-col gap-1 text-sm">
-          {ADMIN_NAV.map((item) => (
+          {visibleNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

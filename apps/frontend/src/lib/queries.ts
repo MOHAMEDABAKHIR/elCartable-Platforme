@@ -5,9 +5,11 @@ import type {
   DashboardOverview,
   Grade,
   Order,
+  PlatformUser,
   Product,
   School,
   SchoolList,
+  UserRole,
 } from './types';
 
 export async function fetchSchools(search?: string): Promise<School[]> {
@@ -73,5 +75,76 @@ export async function fetchOrder(id: string): Promise<Order> {
 
 export async function fetchDashboard(): Promise<DashboardOverview> {
   const { data } = await api.get<DashboardOverview>('/dashboard/overview');
+  return data;
+}
+
+// ==========================================================
+// Utilisateurs back-office (Commerciaux gérés par Admin,
+// Admins gérés par Super Admin)
+// ==========================================================
+
+export async function fetchUsers(params?: { role?: UserRole; search?: string }): Promise<PlatformUser[]> {
+  const { data } = await api.get('/users', { params });
+  return toList<PlatformUser>(data);
+}
+
+export async function deactivateUser(id: string): Promise<PlatformUser> {
+  const { data } = await api.patch<PlatformUser>(`/users/${id}/deactivate`);
+  return data;
+}
+
+export async function reactivateUser(id: string): Promise<PlatformUser> {
+  const { data } = await api.patch<PlatformUser>(`/users/${id}/reactivate`);
+  return data;
+}
+
+export interface InvitationResult {
+  id: string;
+  email: string;
+  role: UserRole;
+  invitationCode: string;
+  expiresAt: string;
+}
+
+/** Réservé Admin/Super Admin — crée un compte Commercial en attente d'activation. */
+export async function inviteCommercial(payload: {
+  email: string;
+  fullName: string;
+  phone?: string;
+}): Promise<InvitationResult> {
+  const { data } = await api.post<InvitationResult>('/auth/invitations', payload);
+  return data;
+}
+
+/** Réservé Super Admin — crée un compte Admin en attente d'activation. */
+export async function inviteAdmin(payload: {
+  email: string;
+  fullName: string;
+  phone?: string;
+}): Promise<InvitationResult> {
+  const { data } = await api.post<InvitationResult>('/auth/invitations/admin', payload);
+  return data;
+}
+
+// ==========================================================
+// Catégories & Niveaux (back-office Admin)
+// ==========================================================
+
+export async function fetchGradesAdmin(): Promise<Grade[]> {
+  const { data } = await api.get('/grades/admin');
+  return toList<Grade>(data);
+}
+
+export async function createGrade(payload: { name: string; cycle?: string; order?: number }): Promise<Grade> {
+  const { data } = await api.post<Grade>('/grades', payload);
+  return data;
+}
+
+export async function createCategory(payload: {
+  name: string;
+  slug: string;
+  parentId?: string;
+}): Promise<Category> {
+  const { data } = await api.post<Category>('/categories', payload);
   return data;
 }

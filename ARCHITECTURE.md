@@ -104,6 +104,7 @@ documentation Swagger — avant de passer au module suivant.
 - [x] Module PDF (fiche de commande + QR Code de suivi)
 - [x] Module Notifications (file in-app back-office)
 - [x] Module Settings (configuration globale clé/valeur)
+- [x] Module Users (gestion Commerciaux/Admins, flux d'invitation généralisé)
 - [~] Frontend (React 19 + Vite + Tailwind 4 — parcours public + back-office)
 
 ### Modules Schools / Grades / SchoolLists / Uploads — détail
@@ -318,10 +319,56 @@ ligne de la feuille de route.
   (`/dashboard/overview`), liste des commandes filtrable, détail de commande
   (changement de statut, édition/ajout/suppression d'articles, assignation
   commercial, téléchargement de la fiche PDF via `/orders/:id/pdf`), CRUD
-  Produits et Écoles (Admin/SuperAdmin).
+  Produits, Écoles, Catégories & Niveaux, et gestion des utilisateurs
+  (Admin/SuperAdmin).
 - Le client axios pointe sur `VITE_API_URL` (défaut `/api/v1/v1` — préfixe
   global `api/v1` + versioning URI `v1`) ; en dev, le proxy Vite redirige
   `/api` vers le backend Nest (`VITE_BACKEND_ORIGIN`).
-- Reste à faire : gestion des catégories/niveaux et des utilisateurs
-  (commerciaux) côté admin — l'API de liste des utilisateurs n'existe pas
-  encore ; l'assignation d'un commercial se fait pour l'instant par ID.
+- La navigation admin (`ADMIN_NAV` dans `Layout.tsx`) filtre désormais les
+  liens selon le rôle courant : un Commercial ne voit plus les entrées
+  Produits/Écoles/Catégories/Utilisateurs dans la sidebar (la protection de
+  route existait déjà, mais le lien restait visible).
+
+### Module Users — détail (complète le flux d'invitation d'Auth)
+
+- Généralisation du flux d'invitation : `AuthService.createInvitedUser()`
+  est maintenant partagé par `inviteCommercial()` (Admin/SuperAdmin) et
+  `inviteAdmin()` (SuperAdmin uniquement, nouvel endpoint
+  `POST /auth/invitations/admin`) — même mécanique (code + expiration +
+  `mustSetPassword`), un seul rôle cible différent. Chaque création est
+  tracée dans l'audit (`CREATE` sur `entityType: 'User'`).
+- `UsersModule` expose la lecture/gestion de ces comptes après création,
+  avec une autorisation à deux niveaux :
+  - `@Roles(ADMIN, SUPER_ADMIN)` au niveau contrôleur (comme les autres
+    modules Admin) ;
+  - une portée plus fine dans `UsersService` : un **Admin** ne peut lister/
+    consulter/désactiver que des comptes **COMMERCIAL** ; un **SuperAdmin**
+    peut agir sur les comptes **ADMIN** et **COMMERCIAL**. Le compte
+    SUPER_ADMIN lui-même n'est jamais exposé par ce module, quel que soit
+    l'appelant.
+  - Un utilisateur hors du périmètre de l'appelant renvoie **404** (pas
+    403) : un Admin qui cherche l'ID d'un autre Admin ne doit pas apprendre
+    que ce compte existe.
+- `PATCH /users/:id/deactivate` / `/reactivate` : soft delete uniquement
+  (comme Schools/Products) — un compte est référencé par des commandes
+  (`commercialId`), un historique (`OrderHistory.userId`) et le journal
+  d'audit, donc jamais de suppression réelle. Auto-désactivation bloquée
+  (`BadRequestException`).
+- Réponses toujours filtrées (`SELECT_SAFE_FIELDS`) : ni mot de passe
+  hashé, ni code d'invitation en clair, jamais renvoyés par ce module.
+
+### Ce qu'il reste (non traité dans cette passe)
+
+- Migrations Prisma (`prisma/migrations/`) : le schéma est complet et
+  cohérent, mais aucune migration n'a encore été générée/appliquée — ça
+  nécessite une vraie connexion à une base Neon (`DATABASE_URL`), qui n'est
+  pas disponible dans cet environnement. À faire : `npx prisma migrate dev
+  --name init` une fois connecté, puis committer le dossier de migration
+  généré.
+- Canal d'envoi externe du code d'invitation (email/SMS) : le code est
+  aujourd'hui renvoyé dans la réponse HTTP à l'inviteur (Admin/SuperAdmin),
+  à transmettre manuellement — aucun fournisseur d'email/SMS n'est branché.
+- Réassignation de commercial dans le détail de commande (back-office) :
+  se fait par ID brut ; pourrait maintenant utiliser `GET /users?role=COMMERCIAL`
+  pour proposer un sélecteur nominatif (l'API le permet, le composant de
+  détail de commande n'a pas encore été mis à jour pour l'utiliser).

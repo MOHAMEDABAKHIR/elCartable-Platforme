@@ -27,6 +27,18 @@ export interface AuthUser {
   role: UserRole;
 }
 
+export interface PlatformUser {
+  id: string;
+  email: string;
+  fullName: string;
+  phone?: string | null;
+  role: UserRole;
+  isActive: boolean;
+  mustSetPassword: boolean;
+  lastLoginAt?: string | null;
+  createdAt: string;
+}
+
 export interface AuthResponse {
   accessToken: string;
   refreshToken?: string;
@@ -44,13 +56,17 @@ export interface School {
 export interface Grade {
   id: string;
   name: string;
-  level?: number | null;
+  cycle?: string | null;
+  order: number;
+  isActive: boolean;
 }
 
 export interface Category {
   id: string;
   name: string;
-  description?: string | null;
+  slug: string;
+  parentId?: string | null;
+  children?: Category[];
 }
 
 export interface Product {

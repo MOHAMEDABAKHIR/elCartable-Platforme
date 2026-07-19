@@ -14,6 +14,8 @@ import { OrdersPage } from './pages/admin/OrdersPage';
 import { OrderDetailPage } from './pages/admin/OrderDetailPage';
 import { AdminProductsPage } from './pages/admin/AdminProductsPage';
 import { AdminSchoolsPage } from './pages/admin/AdminSchoolsPage';
+import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminCatalogRefsPage } from './pages/admin/AdminCatalogRefsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 export function App() {
@@ -56,6 +58,22 @@ export function App() {
           element={
             <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
               <AdminSchoolsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="catalogue-refs"
+          element={
+            <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+              <AdminCatalogRefsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="utilisateurs"
+          element={
+            <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+              <AdminUsersPage />
             </ProtectedRoute>
           }
         />
