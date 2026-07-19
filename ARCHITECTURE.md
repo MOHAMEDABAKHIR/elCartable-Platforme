@@ -372,3 +372,27 @@ ligne de la feuille de route.
   se fait par ID brut ; pourrait maintenant utiliser `GET /users?role=COMMERCIAL`
   pour proposer un sélecteur nominatif (l'API le permet, le composant de
   détail de commande n'a pas encore été mis à jour pour l'utiliser).
+
+### Correctif : page d'activation d'invitation manquante
+
+Le flux d'invitation (Auth/Users) était complet côté API, mais **le
+frontend n'avait aucune page pour `POST /auth/invitations/accept`** — la
+page `/connexion` ne gérait que la connexion classique email + mot de
+passe. Un compte fraîchement invité (`mustSetPassword: true`, `password:
+null` en base) ne peut donc jamais se connecter tant que ce formulaire n'a
+pas été rempli : `AuthService.validateCredentials()` renvoie `null` par
+design tant qu'aucun mot de passe n'a été défini, d'où un 401 trompeur
+("Identifiants incorrects.") si on tente de saisir le code d'invitation
+dans le champ mot de passe du login normal.
+
+Ajouté :
+- `useAuth().activateInvitation(email, invitationCode, newPassword)` dans
+  `store/auth.tsx` — factorise la persistance de session (`applySession`)
+  avec `login()`, pour ne pas dupliquer la logique `localStorage`/token.
+- Page `/activer-compte` (`ActivateInvitationPage.tsx`) : email + code +
+  nouveau mot de passe + confirmation, avec la même règle de complexité de
+  mot de passe que le backend (majuscule/minuscule/chiffre) validée côté
+  client avant l'appel réseau.
+- Lien croisé entre `/connexion` et `/activer-compte`, et le message de
+  succès de `AdminUsersPage` pointe maintenant explicitement vers cette
+  page pour que l'inviteur sache quoi transmettre.

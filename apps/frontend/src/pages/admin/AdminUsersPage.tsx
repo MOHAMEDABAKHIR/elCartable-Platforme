@@ -107,7 +107,9 @@ export function AdminUsersPage() {
               <Alert kind="success">
                 Compte créé pour <strong>{lastInvitation.email}</strong>. Code d'invitation :{' '}
                 <code className="rounded bg-white px-2 py-0.5 font-mono">{lastInvitation.invitationCode}</code>{' '}
-                (valable jusqu'au {new Date(lastInvitation.expiresAt).toLocaleString('fr-MA')}).
+                (valable jusqu'au {new Date(lastInvitation.expiresAt).toLocaleString('fr-MA')}). Transmettez ce
+                code avec ce lien pour activer le compte :{' '}
+                <code className="rounded bg-white px-2 py-0.5 font-mono">/activer-compte</code>
               </Alert>
             </div>
           )}

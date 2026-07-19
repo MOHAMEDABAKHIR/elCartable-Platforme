@@ -8,6 +8,7 @@ const USER_KEY = 'elc.user';
 interface AuthState {
   user: AuthUser | null;
   login: (email: string, password: string) => Promise<AuthUser>;
+  activateInvitation: (email: string, invitationCode: string, newPassword: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -26,13 +27,35 @@ function loadUser(): AuthUser | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(loadUser);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { data } = await api.post<AuthResponse>('/auth/login', { email, password });
+  const applySession = useCallback((data: AuthResponse) => {
     setToken(data.accessToken);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     setUser(data.user);
     return data.user;
   }, []);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const { data } = await api.post<AuthResponse>('/auth/login', { email, password });
+      return applySession(data);
+    },
+    [applySession],
+  );
+
+  // Première connexion d'un compte invité (Admin ou Commercial) : email +
+  // code d'invitation reçu de l'inviteur + nouveau mot de passe. Renvoie
+  // directement une session active, comme le login normal.
+  const activateInvitation = useCallback(
+    async (email: string, invitationCode: string, newPassword: string) => {
+      const { data } = await api.post<AuthResponse>('/auth/invitations/accept', {
+        email,
+        invitationCode,
+        newPassword,
+      });
+      return applySession(data);
+    },
+    [applySession],
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -46,8 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthState>(
-    () => ({ user, login, logout, isAuthenticated: user !== null }),
-    [user, login, logout],
+    () => ({ user, login, activateInvitation, logout, isAuthenticated: user !== null }),
+    [user, login, activateInvitation, logout],
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

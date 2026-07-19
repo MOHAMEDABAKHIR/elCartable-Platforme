@@ -58,6 +58,9 @@ export function LoginPage() {
         <Link to="/" className="mt-4 block text-center text-xs text-brand-500 hover:underline">
           ← Retour au site
         </Link>
+        <Link to="/activer-compte" className="mt-2 block text-center text-xs text-brand-500 hover:underline">
+          Vous avez un code d'invitation ? Activez votre compte
+        </Link>
       </Card>
     </div>
   );

@@ -9,6 +9,7 @@ import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
 import { TrackPage } from './pages/TrackPage';
 import { LoginPage } from './pages/LoginPage';
+import { ActivateInvitationPage } from './pages/ActivateInvitationPage';
 import { DashboardPage } from './pages/admin/DashboardPage';
 import { OrdersPage } from './pages/admin/OrdersPage';
 import { OrderDetailPage } from './pages/admin/OrderDetailPage';
@@ -33,6 +34,7 @@ export function App() {
       </Route>
 
       <Route path="/connexion" element={<LoginPage />} />
+      <Route path="/activer-compte" element={<ActivateInvitationPage />} />
 
       <Route
         path="/admin"
