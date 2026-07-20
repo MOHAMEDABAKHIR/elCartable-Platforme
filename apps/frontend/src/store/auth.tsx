@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api, setToken } from '../lib/api';
+import { api, clearTokens, onSessionExpired, setRefreshToken, setToken } from '../lib/api';
 import type { AuthResponse, AuthUser } from '../lib/types';
 
 const USER_KEY = 'elc.user';
@@ -29,10 +29,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const applySession = useCallback((data: AuthResponse) => {
     setToken(data.accessToken);
+    setRefreshToken(data.refreshToken ?? null);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     setUser(data.user);
     return data.user;
   }, []);
+
+  const clearSession = useCallback(() => {
+    clearTokens();
+    localStorage.removeItem(USER_KEY);
+    setUser(null);
+  }, []);
+
+  // Quand le refresh token est lui-même expiré/invalide, l'intercepteur Axios
+  // déclenche ce handler : on vide la session et ProtectedRoute redirige
+  // automatiquement vers /connexion.
+  useEffect(() => {
+    onSessionExpired(clearSession);
+    return () => onSessionExpired(null);
+  }, [clearSession]);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -63,10 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // best-effort : on nettoie la session locale quoi qu'il arrive
     }
-    setToken(null);
-    localStorage.removeItem(USER_KEY);
-    setUser(null);
-  }, []);
+    clearSession();
+  }, [clearSession]);
 
   const value = useMemo<AuthState>(
     () => ({ user, login, activateInvitation, logout, isAuthenticated: user !== null }),
