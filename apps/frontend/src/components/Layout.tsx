@@ -1,6 +1,8 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useCart } from '../store/cart';
 import { useAuth } from '../store/auth';
+import Footer from "./Footer";
+import NavBar from './Navbar';
 
 function Logo() {
   return (
@@ -21,8 +23,8 @@ export function PublicLayout() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-20 border-b border-brand-100 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <header className="sticky top-0 z-20">
+        {/* <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Logo />
           <nav className="flex items-center gap-4 text-sm font-medium text-brand-700">
             <NavLink to="/catalogue" className="hover:text-brand-900">
@@ -46,16 +48,15 @@ export function PublicLayout() {
               {isAuthenticated ? 'Espace pro' : 'Connexion'}
             </Link>
           </nav>
-        </div>
+        </div> */}
+        <NavBar/>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4">
         <Outlet />
       </main>
 
-      <footer className="border-t border-brand-100 bg-white py-6 text-center text-sm text-brand-500">
-        elCartable — Fournitures scolaires livrées à domicile · Paiement à la livraison
-      </footer>
+      <Footer/>
     </div>
   );
 }
