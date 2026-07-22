@@ -2,7 +2,7 @@
 
 /* Charte elCartable : violet doux + jaune accent. */
 @theme {
-  --color-brand-50: #f4f1fb;
+  --color-brand-50: #f4dfdfd;
   --color-brand-100: #e8e2f6;
   --color-brand-200: #d3c8ee;
   --color-brand-300: #b9a9e2;
@@ -28,4 +28,17 @@ body,
 
 body {
   @apply bg-brand-50 text-brand-900 antialiased;
+}
+@keyframes infinite-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-infinite-scroll {
+  animation: infinite-scroll var(--scroll-duration, 30s) linear infinite;
 }
