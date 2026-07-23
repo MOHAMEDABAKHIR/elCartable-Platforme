@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, apiErrorMessage } from '../lib/api';
 import { fetchGrades, fetchSchoolList, fetchSchools } from '../lib/queries';
@@ -20,10 +20,18 @@ function OfficialList({ schoolId, gradeId }: { schoolId: string; gradeId: string
 
   if (!list.data) {
     return (
-      <Alert kind="info">
-        Aucune liste officielle pour cette école et ce niveau. Utilisez le formulaire ci-dessous
-        pour nous envoyer votre liste.
-      </Alert>
+      <Card>
+        <Alert kind="info">
+          Aucune liste officielle pour cette école et ce niveau.
+        </Alert>
+        <p className="mt-3 text-sm text-brand-600">
+          Pas de souci : prenez votre liste en photo, envoyez-la en PDF, saisissez-la à la main
+          (formulaire ci-dessous) ou composez votre panier directement depuis le catalogue.
+        </p>
+        <Link to="/catalogue" className="mt-3 inline-block">
+          <Button variant="outline">Composer depuis le catalogue</Button>
+        </Link>
+      </Card>
     );
   }
 
@@ -164,8 +172,15 @@ function CustomListForm() {
             <Input
               type="file"
               accept={source === 'CUSTOM_PHOTO' ? 'image/*' : 'application/pdf'}
+              // Sur mobile, ouvre directement l'appareil photo arrière.
+              capture={source === 'CUSTOM_PHOTO' ? 'environment' : undefined}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
+            {source === 'CUSTOM_PHOTO' && (
+              <span className="mt-1 block text-xs text-brand-500">
+                Sur téléphone, l'appareil photo s'ouvre pour photographier la liste.
+              </span>
+            )}
           </Field>
         )}
 

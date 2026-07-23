@@ -37,6 +37,7 @@ const ADMIN_NAV = [
   { to: '/admin/commandes', label: 'Commandes' },
   { to: '/admin/produits', label: 'Produits', roles: ['ADMIN', 'SUPER_ADMIN'] },
   { to: '/admin/ecoles', label: 'Écoles', roles: ['ADMIN', 'SUPER_ADMIN'] },
+  { to: '/admin/listes-officielles', label: 'Listes officielles', roles: ['ADMIN', 'SUPER_ADMIN'] },
   { to: '/admin/catalogue-refs', label: 'Catégories & niveaux', roles: ['ADMIN', 'SUPER_ADMIN'] },
   { to: '/admin/utilisateurs', label: 'Utilisateurs', roles: ['ADMIN', 'SUPER_ADMIN'] },
 ];
