@@ -9,6 +9,7 @@ describe('SchoolListsService', () => {
   let prisma: {
     schoolList: Record<string, jest.Mock>;
     schoolListItem: Record<string, jest.Mock>;
+    product: Record<string, jest.Mock>;
   };
 
   beforeEach(async () => {
@@ -21,6 +22,9 @@ describe('SchoolListsService', () => {
       schoolListItem: {
         deleteMany: jest.fn(),
         createMany: jest.fn(),
+      },
+      product: {
+        findMany: jest.fn(),
       },
     };
 
@@ -57,6 +61,44 @@ describe('SchoolListsService', () => {
         }),
       );
       expect(result).toBe(list);
+    });
+  });
+
+  describe('Scénario 1 — création liste officielle (import catalogue)', () => {
+    it('rejette un article dont le produit n\'existe pas / est inactif', async () => {
+      prisma.product.findMany.mockResolvedValue([]); // aucun produit trouvé
+
+      await expect(
+        service.createOrReplaceOfficialList({
+          schoolId: 'school-1',
+          gradeId: 'grade-1',
+          items: [{ productId: 'ghost', quantity: 2 }],
+        } as any),
+      ).rejects.toThrow(BadRequestException);
+      // On ne détruit jamais la liste existante avant validation.
+      expect(prisma.schoolListItem.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('crée la liste avec des libellés dérivés du catalogue', async () => {
+      prisma.product.findMany.mockResolvedValue([
+        { id: 'p1', name: 'Cahier 96 pages' },
+      ]);
+      prisma.schoolList.findFirst.mockResolvedValue(null);
+      prisma.schoolList.create.mockResolvedValue({ id: 'list-1', items: [] });
+
+      await service.createOrReplaceOfficialList({
+        schoolId: 'school-1',
+        gradeId: 'grade-1',
+        items: [{ productId: 'p1', quantity: 3 }],
+      } as any);
+
+      expect(prisma.schoolList.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            items: { create: [{ productId: 'p1', label: 'Cahier 96 pages', quantity: 3 }] },
+          }),
+        }),
+      );
     });
   });
 

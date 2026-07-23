@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchGrades, fetchSchools } from '../lib/queries';
-import { Button, Card, Field, Select, Spinner } from '../components/ui';
+import { Button } from '../components/ui';
 import InfiniteimagescrollSchool from '../components/InfiniteimagescrollSchool';
 import InfiniteimagescrollSupplies from '../components/InfiniteimagescrollSupplies';
 import CtaButtons from '../components/CTA';

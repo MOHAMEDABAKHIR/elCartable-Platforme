@@ -1,5 +1,4 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useCart } from '../store/cart';
 import { useAuth } from '../store/auth';
 import Footer from "./Footer";
 import NavBar from './Navbar';
@@ -18,45 +17,17 @@ function Logo() {
 }
 
 export function PublicLayout() {
-  const { totalItems } = useCart();
-  const { isAuthenticated } = useAuth();
-
   return (
     <div className="flex min-h-full flex-col">
       <header className="sticky top-0 z-20">
-        {/* <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Logo />
-          <nav className="flex items-center gap-4 text-sm font-medium text-brand-700">
-            <NavLink to="/catalogue" className="hover:text-brand-900">
-              Catalogue
-            </NavLink>
-            <NavLink to="/suivi" className="hover:text-brand-900">
-              Suivi
-            </NavLink>
-            <Link to="/panier" className="relative rounded-lg bg-brand-100 px-3 py-1.5 text-brand-800">
-              Panier
-              {totalItems > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-400 px-1 text-xs font-bold text-brand-900">
-                  {totalItems}
-                </span>
-              )}
-            </Link>
-            <Link
-              to={isAuthenticated ? '/admin' : '/connexion'}
-              className="rounded-lg border border-brand-200 px-3 py-1.5 hover:bg-brand-50"
-            >
-              {isAuthenticated ? 'Espace pro' : 'Connexion'}
-            </Link>
-          </nav>
-        </div> */}
-        <NavBar/>
+        <NavBar />
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-12">
         <Outlet />
       </main>
 
-      <Footer/>
+      <Footer />
     </div>
   );
 }

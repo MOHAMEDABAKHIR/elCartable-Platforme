@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { ProductsService } from '../products.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StorageService } from '../../storage/storage.service';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -18,7 +19,11 @@ describe('ProductsService', () => {
     };
 
     const moduleRef = await Test.createTestingModule({
-      providers: [ProductsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        ProductsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: StorageService, useValue: { upload: jest.fn(), remove: jest.fn() } },
+      ],
     }).compile();
 
     service = moduleRef.get(ProductsService);

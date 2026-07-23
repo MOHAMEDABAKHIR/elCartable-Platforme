@@ -35,8 +35,18 @@ export class SchoolListsService {
     );
   }
 
-  /** Admin : crée ou remplace la liste officielle d'une école + niveau. */
+  /**
+   * Admin : crée ou remplace la liste officielle d'une école + niveau.
+   *
+   * Contrainte métier : la liste est *importée depuis le catalogue*. Chaque
+   * article doit référencer un produit catalogué actif ; le libellé stocké est
+   * dérivé du nom du produit (snapshot). On rejette tout `productId` inconnu ou
+   * désactivé pour garantir qu'une liste officielle ne contient que des
+   * articles réellement commandables.
+   */
   async createOrReplaceOfficialList(dto: CreateOfficialSchoolListDto) {
+    const itemsData = await this.resolveCataloguedItems(dto.items);
+
     const existing = await this.prisma.schoolList.findFirst({
       where: {
         schoolId: dto.schoolId,
@@ -50,12 +60,7 @@ export class SchoolListsService {
       // here (unlike orders): this is catalogue data, not client-facing state.
       await this.prisma.schoolListItem.deleteMany({ where: { schoolListId: existing.id } });
       await this.prisma.schoolListItem.createMany({
-        data: dto.items.map((item) => ({
-          schoolListId: existing.id,
-          productId: item.productId,
-          label: item.label,
-          quantity: item.quantity,
-        })),
+        data: itemsData.map((item) => ({ schoolListId: existing.id, ...item })),
       });
       return this.findOfficialList(dto.schoolId, dto.gradeId);
     }
@@ -65,18 +70,40 @@ export class SchoolListsService {
         schoolId: dto.schoolId,
         gradeId: dto.gradeId,
         source: SchoolListSource.OFFICIAL,
-        items: {
-          create: dto.items.map((item) => ({
-            productId: item.productId,
-            label: item.label,
-            quantity: item.quantity,
-          })),
-        },
+        items: { create: itemsData },
       },
       include: { items: true },
     });
 
     return created;
+  }
+
+  /**
+   * Valide que tous les `productId` existent et sont actifs, puis renvoie les
+   * lignes prêtes à insérer avec le libellé dérivé du catalogue.
+   */
+  private async resolveCataloguedItems(
+    items: CreateOfficialSchoolListDto['items'],
+  ): Promise<Array<{ productId: string; label: string; quantity: number }>> {
+    const ids = [...new Set(items.map((i) => i.productId))];
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: ids }, isActive: true },
+      select: { id: true, name: true },
+    });
+    const byId = new Map(products.map((p) => [p.id, p]));
+
+    const invalid = ids.filter((id) => !byId.has(id));
+    if (invalid.length > 0) {
+      throw new BadRequestException(
+        `Article(s) introuvable(s) ou inactif(s) dans le catalogue : ${invalid.join(', ')}. Une liste officielle ne peut contenir que des produits catalogués.`,
+      );
+    }
+
+    return items.map((item) => ({
+      productId: item.productId,
+      label: byId.get(item.productId)!.name,
+      quantity: item.quantity,
+    }));
   }
 
   /**

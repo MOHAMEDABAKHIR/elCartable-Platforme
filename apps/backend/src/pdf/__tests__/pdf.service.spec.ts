@@ -2,24 +2,10 @@ import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { promises as fs } from 'fs';
 import { PdfService } from '../pdf.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
-
-jest.mock('fs', () => {
-  const actual = jest.requireActual('fs');
-  return {
-    ...actual,
-    promises: {
-      ...actual.promises,
-      mkdir: jest.fn().mockResolvedValue(undefined),
-      writeFile: jest.fn().mockResolvedValue(undefined),
-    },
-  };
-});
-
-const mockedFs = fs as jest.Mocked<typeof fs>;
+import { StorageService } from '../../storage/storage.service';
 
 function buildOrder(overrides: Record<string, unknown> = {}) {
   return {
@@ -48,6 +34,7 @@ describe('PdfService', () => {
     orderHistory: { create: jest.Mock };
   };
   let audit: { log: jest.Mock };
+  let storage: { upload: jest.Mock; remove: jest.Mock };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -59,12 +46,21 @@ describe('PdfService', () => {
       orderHistory: { create: jest.fn().mockResolvedValue({}) },
     };
     audit = { log: jest.fn().mockResolvedValue(undefined) };
+    storage = {
+      upload: jest.fn(async ({ folder, baseName, mimeType }) => {
+        const ext = mimeType === 'application/pdf' ? '.pdf' : '.png';
+        const key = `${folder}/${baseName}${ext}`;
+        return { url: `/uploads/${key}`, key };
+      }),
+      remove: jest.fn().mockResolvedValue(undefined),
+    };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         PdfService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditService, useValue: audit },
+        { provide: StorageService, useValue: storage },
         {
           provide: ConfigService,
           useValue: { get: jest.fn((_key: string, fallback?: unknown) => fallback) },
@@ -95,7 +91,7 @@ describe('PdfService', () => {
       const { pdf } = await service.getOrderPdf('order-1', 'user-1');
 
       expect(pdf.subarray(0, 5).toString('ascii')).toBe('%PDF-');
-      expect(mockedFs.writeFile).toHaveBeenCalledTimes(2);
+      expect(storage.upload).toHaveBeenCalledTimes(2);
       expect(prisma.order.update).toHaveBeenCalledWith({
         where: { id: 'order-1' },
         data: {
