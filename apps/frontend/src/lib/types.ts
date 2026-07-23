@@ -34,6 +34,7 @@ export interface PlatformUser {
   phone?: string | null;
   role: UserRole;
   isActive: boolean;
+  avatarUrl?: string | null;
   mustSetPassword: boolean;
   lastLoginAt?: string | null;
   createdAt: string;
@@ -50,6 +51,7 @@ export interface School {
   name: string;
   city?: string | null;
   address?: string | null;
+  logoUrl?: string | null;
   isActive: boolean;
 }
 

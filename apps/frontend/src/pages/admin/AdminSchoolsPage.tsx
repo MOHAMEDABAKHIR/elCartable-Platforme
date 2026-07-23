@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, apiErrorMessage } from '../../lib/api';
-import { fetchSchoolsAdmin } from '../../lib/queries';
+import { fetchSchoolsAdmin, uploadSchoolLogo } from '../../lib/queries';
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Spinner } from '../../components/ui';
+import { ImageUploadButton } from '../../components/ImageUploadButton';
 
 interface SchoolForm {
   name: string;
@@ -36,6 +37,12 @@ export function AdminSchoolsPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       isActive ? api.delete(`/schools/${id}`) : api.patch(`/schools/${id}`, { isActive: true }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['schools'] }),
+    onError: (err) => setError(apiErrorMessage(err)),
+  });
+
+  const logoMutation = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => uploadSchoolLogo(id, file),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['schools'] }),
     onError: (err) => setError(apiErrorMessage(err)),
   });
@@ -83,6 +90,7 @@ export function AdminSchoolsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-brand-100 text-left text-brand-500">
+                <th className="px-4 py-3">Logo</th>
                 <th className="px-4 py-3">École</th>
                 <th className="px-4 py-3">Ville</th>
                 <th className="px-4 py-3 text-center">Statut</th>
@@ -92,6 +100,20 @@ export function AdminSchoolsPage() {
             <tbody>
               {schools.data.map((s) => (
                 <tr key={s.id} className="border-b border-brand-50">
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col items-start gap-1">
+                      {s.logoUrl ? (
+                        <img src={s.logoUrl} alt={s.name} className="h-10 w-10 rounded-lg object-contain" />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-xs text-brand-400">—</div>
+                      )}
+                      <ImageUploadButton
+                        label={s.logoUrl ? 'Changer' : 'Ajouter'}
+                        onUpload={(file) => logoMutation.mutateAsync({ id: s.id, file })}
+                        onError={setError}
+                      />
+                    </div>
+                  </td>
                   <td className="px-4 py-3 font-medium text-brand-800">{s.name}</td>
                   <td className="px-4 py-3 text-brand-500">{s.city ?? '—'}</td>
                   <td className="px-4 py-3 text-center">

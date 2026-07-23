@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, apiErrorMessage } from '../../lib/api';
-import { fetchCategories, fetchProductsAdmin } from '../../lib/queries';
+import { fetchCategories, fetchProductsAdmin, uploadProductImage } from '../../lib/queries';
 import { formatMAD } from '../../lib/format';
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Select, Spinner, Textarea } from '../../components/ui';
+import { ImageUploadButton } from '../../components/ImageUploadButton';
 
 interface ProductForm {
   name: string;
@@ -42,6 +43,12 @@ export function AdminProductsPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       isActive ? api.delete(`/products/${id}`) : api.patch(`/products/${id}`, { isActive: true }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
+    onError: (err) => setError(apiErrorMessage(err)),
+  });
+
+  const imageMutation = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => uploadProductImage(id, file),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
     onError: (err) => setError(apiErrorMessage(err)),
   });
@@ -116,6 +123,7 @@ export function AdminProductsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-brand-100 text-left text-brand-500">
+                <th className="px-4 py-3">Image</th>
                 <th className="px-4 py-3">Produit</th>
                 <th className="px-4 py-3">Catégorie</th>
                 <th className="px-4 py-3 text-right">Prix</th>
@@ -126,6 +134,20 @@ export function AdminProductsPage() {
             <tbody>
               {products.data.map((p) => (
                 <tr key={p.id} className="border-b border-brand-50">
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col items-start gap-1">
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt={p.name} className="h-10 w-10 rounded-lg object-cover" />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-xs text-brand-400">—</div>
+                      )}
+                      <ImageUploadButton
+                        label={p.imageUrl ? 'Changer' : 'Ajouter'}
+                        onUpload={(file) => imageMutation.mutateAsync({ id: p.id, file })}
+                        onError={setError}
+                      />
+                    </div>
+                  </td>
                   <td className="px-4 py-3 font-medium text-brand-800">{p.name}</td>
                   <td className="px-4 py-3 text-brand-500">{p.category?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-right">{formatMAD(p.price)}</td>

@@ -1,16 +1,17 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 
+/**
+ * Article d'une liste officielle. Contrainte métier : une liste officielle est
+ * *importée depuis le catalogue* — chaque article DOIT référencer un produit
+ * catalogué existant (`productId`). Le libellé est dérivé côté serveur du nom
+ * du produit, on ne l'accepte donc pas en entrée.
+ */
 export class CreateSchoolListItemDto {
-  @ApiPropertyOptional({ description: 'ID produit du catalogue si disponible' })
-  @IsOptional()
+  @ApiProperty({ description: 'ID du produit catalogué (obligatoire).' })
   @IsString()
-  productId?: string;
-
-  @ApiProperty({ example: 'Cahier 96 pages grands carreaux' })
-  @IsString()
-  @MinLength(1)
-  label: string;
+  @IsNotEmpty()
+  productId: string;
 
   @ApiProperty({ example: 2, default: 1 })
   @IsInt()

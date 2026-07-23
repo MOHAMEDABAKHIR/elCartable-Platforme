@@ -97,6 +97,7 @@ model User {
   password          String? // null until first login completed (commercial invite flow)
   fullName          String
   phone             String?
+  avatarUrl         String? // URL Cloudflare R2 (jamais le binaire)
   role              UserRole
   isActive          Boolean    @default(true)
   mustSetPassword   Boolean    @default(false) // true for commercial on first invite
@@ -126,6 +127,7 @@ model School {
   name      String
   city      String?
   address   String?
+  logoUrl   String? // URL Cloudflare R2 (jamais le binaire)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

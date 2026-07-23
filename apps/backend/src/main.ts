@@ -16,10 +16,19 @@ async function bootstrap() {
   const apiPrefix = config.get<string>('apiPrefix', 'api/v1');
   app.setGlobalPrefix(apiPrefix);
 
-  // Sert les fichiers disque (uploads scénario 2 + PDF/QR de commande générés)
-  // sous /uploads. Hors préfixe API. À remplacer par un bucket S3 en prod.
-  const uploadsDir = config.get<string>('uploads.dir', './uploads');
-  app.useStaticAssets(join(process.cwd(), uploadsDir), { prefix: '/uploads' });
+  // En production, les fichiers sont stockés sur Cloudflare R2 et servis depuis
+  // R2_PUBLIC_URL — rien n'est servi depuis le disque. Le service /uploads
+  // n'est monté qu'en repli local (R2 non configuré), pour le développement.
+  const r2Configured = Boolean(
+    config.get<string>('storage.r2.accountId') &&
+      config.get<string>('storage.r2.accessKeyId') &&
+      config.get<string>('storage.r2.secretAccessKey') &&
+      config.get<string>('storage.r2.bucket'),
+  );
+  if (!r2Configured) {
+    const uploadsDir = config.get<string>('uploads.dir', './uploads');
+    app.useStaticAssets(join(process.cwd(), uploadsDir), { prefix: '/uploads' });
+  }
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
   app.enableCors({
