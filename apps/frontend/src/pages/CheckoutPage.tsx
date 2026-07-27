@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
 import { useCart } from '../store/cart';
-import { createOrder } from '../lib/queries';
+import { createOrder, fetchGrades, fetchSchools } from '../lib/queries';
 import { apiErrorMessage } from '../lib/api';
 import { formatMAD } from '../lib/format';
-import { Alert, Button, Card, Field, Input, Textarea } from '../components/ui';
+import { Alert, Button, Card, Field, Input, Select, Textarea } from '../components/ui';
 
 interface CheckoutForm {
   customerName: string;
@@ -19,6 +20,10 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const { items, totalAmount, context } = useCart();
   const [error, setError] = useState('');
+  const [schoolId, setSchoolId] = useState(context.schoolId ?? '');
+  const [gradeId, setGradeId] = useState(context.gradeId ?? '');
+  const schools = useQuery({ queryKey: ['schools'], queryFn: () => fetchSchools() });
+  const grades = useQuery({ queryKey: ['grades'], queryFn: fetchGrades });
   const {
     register,
     handleSubmit,
@@ -36,8 +41,8 @@ export function CheckoutPage() {
         customerEmail: values.customerEmail || undefined,
         deliveryAddress: values.deliveryAddress,
         note: values.note || undefined,
-        schoolId: context.schoolId,
-        gradeId: context.gradeId,
+        schoolId: schoolId || undefined,
+        gradeId: gradeId || undefined,
         items: items.map((i) => ({
           productId: i.productId,
           label: i.label,
@@ -72,6 +77,28 @@ export function CheckoutPage() {
               </Field>
               <Field label="Email (optionnel)" error={errors.customerEmail?.message}>
                 <Input type="email" {...register('customerEmail')} />
+              </Field>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="École">
+                <Select value={schoolId} onChange={(e) => setSchoolId(e.target.value)}>
+                  <option value="">Sélectionnez votre école</option>
+                  {schools.data?.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}{s.city ? ` - ${s.city}` : ''}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Niveau">
+                <Select value={gradeId} onChange={(e) => setGradeId(e.target.value)}>
+                  <option value="">Sélectionnez le niveau</option>
+                  {grades.data?.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </Select>
               </Field>
             </div>
             <Field label="Adresse de livraison" error={errors.deliveryAddress?.message}>

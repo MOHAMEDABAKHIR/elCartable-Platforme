@@ -21,9 +21,26 @@ export default () => ({
 
   uploads: {
     maxFileSizeMb: parseInt(process.env.UPLOAD_MAX_FILE_SIZE_MB ?? '5', 10),
-    // Répertoire disque de stockage (uploads + PDF de commande générés). À
-    // remplacer par un bucket S3-compatible en production — swap ici.
+    // Répertoire disque de fallback (uploads + PDF de commande générés) utilisé
+    // uniquement lorsque le stockage objet Cloudflare R2 n'est pas configuré.
     dir: process.env.UPLOAD_DIR ?? './uploads',
+  },
+
+  // Stockage objet Cloudflare R2 (S3-compatible). Aucun fichier n'est stocké en
+  // base : on ne persiste que l'URL publique renvoyée par R2 dans Neon. Si ces
+  // variables sont absentes, on retombe sur le disque local (dev sans R2).
+  storage: {
+    r2: {
+      accountId: process.env.R2_ACCOUNT_ID,
+      accessKeyId: process.env.R2_ACCESS_KEY_ID,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+      bucket: process.env.R2_BUCKET,
+      // Endpoint S3 de R2 : par défaut https://<accountId>.r2.cloudflarestorage.com
+      endpoint: process.env.R2_ENDPOINT,
+      // URL publique du bucket (domaine r2.dev ou domaine personnalisé) servie
+      // au frontend. Les clés R2 ne sont JAMAIS exposées au client.
+      publicUrl: process.env.R2_PUBLIC_URL,
+    },
   },
 
   whatsapp: {

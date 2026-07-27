@@ -1,5 +1,7 @@
-import type { FC, FormEvent, SVGProps } from "react";
-import { MapPin, Phone, Mail, Clock, ArrowRight } from "lucide-react";
+import type { FC, SVGProps } from "react";
+import { Link } from "react-router-dom";
+import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { support } from "../lib/config";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -8,6 +10,8 @@ import { MapPin, Phone, Mail, Clock, ArrowRight } from "lucide-react";
 interface FooterLink {
   label: string;
   href: string;
+  /** true = lien externe (WhatsApp, tel, mail) rendu via <a>. */
+  external?: boolean;
 }
 
 interface FooterColumn {
@@ -27,52 +31,27 @@ interface SocialLink {
 
 const columns: FooterColumn[] = [
   {
-    title: "Produits",
+    title: "Acheter",
     links: [
-      { label: "Toutes les listes", href: "/listes" },
-      { label: "Primaire", href: "/listes/primaire" },
-      { label: "Collège", href: "/listes/college" },
-      { label: "Lycée", href: "/listes/lycee" },
-      { label: "Papeterie", href: "/produits/papeterie" },
-      { label: "Cartables", href: "/produits/cartables" },
-    ],
-  },
-  {
-    title: "Services",
-    links: [
-      { label: "Comment ça marche", href: "/comment-ca-marche" },
-      { label: "Livraison", href: "/livraison" },
-      { label: "Paiement", href: "/paiement" },
+      { label: "Catalogue", href: "/catalogue" },
+      { label: "Listes scolaires", href: "/listes" },
+      { label: "Mon panier", href: "/panier" },
       { label: "Suivi de commande", href: "/suivi" },
-      { label: "FAQ", href: "/faq" },
     ],
   },
   {
-    title: "Entreprise",
+    title: "Aide & contact",
     links: [
-      { label: "À propos", href: "/a-propos" },
-      { label: "Nos partenaires", href: "/partenaires" },
-      { label: "Nos écoles", href: "/ecoles" },
-      { label: "Carrières", href: "/carrieres" },
-      { label: "Blog", href: "/blog" },
+      {
+        label: "Contacter sur WhatsApp",
+        href: support.whatsappHref("Bonjour, j'ai besoin d'aide concernant ma commande elCartable."),
+        external: true,
+      },
+      { label: "Nous appeler", href: support.telHref, external: true },
+      { label: "Nous écrire", href: support.mailHref, external: true },
+      { label: "Espace professionnel", href: "/connexion" },
     ],
   },
-  {
-    title: "Support",
-    links: [
-      { label: "Centre d'aide", href: "/aide" },
-      { label: "Contact", href: "/contact" },
-      { label: "Conditions", href: "/conditions" },
-      { label: "Confidentialité", href: "/confidentialite" },
-      { label: "Mentions légales", href: "/mentions-legales" },
-    ],
-  },
-];
-
-const trustBadges: string[] = [
-  "Livraison partout au Maroc",
-  "Paiement à la livraison",
-  "Produits officiels",
 ];
 
 /**
@@ -135,7 +114,7 @@ export const Footer: FC = () => {
         {/* -------------------------------------------------------- */}
         {/* Grille principale                                        */}
         {/* -------------------------------------------------------- */}
-        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-6 lg:gap-8">
+        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {/* Colonne logo */}
           <div className="sm:col-span-2 lg:col-span-1 ">
             {/* TODO: remplacer par le chemin réel du logo si nécessaire */}
@@ -174,12 +153,23 @@ export const Footer: FC = () => {
               <ul className="mt-5 space-y-3">
                 {column.links.map((link) => (
                   <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="inline-block text-sm leading-relaxed text-slate-400 transition-all duration-300 hover:translate-x-1 hover:text-white"
-                    >
-                      {link.label}
-                    </a>
+                    {link.external ? (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block text-sm leading-relaxed text-slate-400 transition-all duration-300 hover:translate-x-1 hover:text-white"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={link.href}
+                        className="inline-block text-sm leading-relaxed text-slate-400 transition-all duration-300 hover:translate-x-1 hover:text-white"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -200,19 +190,19 @@ export const Footer: FC = () => {
               <p className="flex items-center gap-2">
                 <Phone className="h-4 w-4 shrink-0 text-teal-400" aria-hidden="true" />
                 <a
-                  href="tel:+212600000000"
+                  href={support.telHref}
                   className="transition-colors duration-300 hover:text-white"
                 >
-                  +212 6 00 00 00 00
+                  {support.phone}
                 </a>
               </p>
               <p className="flex items-center gap-2">
                 <Mail className="h-4 w-4 shrink-0 text-teal-400" aria-hidden="true" />
                 <a
-                  href="mailto:contact@elcartable.ma"
+                  href={support.mailHref}
                   className="transition-colors duration-300 hover:text-white"
                 >
-                  contact@elcartable.ma
+                  {support.email}
                 </a>
               </p>
               <p className="flex items-start gap-2">

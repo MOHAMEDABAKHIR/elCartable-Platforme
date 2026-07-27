@@ -1,5 +1,17 @@
-import { Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { IMAGE_UPLOAD_OPTIONS } from '../storage/file-upload';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -42,5 +54,17 @@ export class UsersController {
   @ApiOperation({ summary: 'Réactiver un compte désactivé' })
   reactivate(@Param('id') id: string, @CurrentUser() currentUser: AuthenticatedUser) {
     return this.usersService.reactivate(id, currentUser);
+  }
+
+  @Post(':id/avatar')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: "Uploader l'avatar d'un compte (image → Cloudflare R2)" })
+  @UseInterceptors(FileInterceptor('file', IMAGE_UPLOAD_OPTIONS))
+  setAvatar(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ) {
+    return this.usersService.setAvatar(id, file, currentUser);
   }
 }

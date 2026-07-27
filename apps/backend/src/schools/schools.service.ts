@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { containsInsensitive, ensureFound } from '../common/prisma/query.utils';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
@@ -7,7 +8,10 @@ import { SearchSchoolDto } from './dto/search-school.dto';
 
 @Injectable()
 export class SchoolsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   /**
    * Public search used by the visitor landing page ("choisir une école").
@@ -47,6 +51,22 @@ export class SchoolsService {
   async update(id: string, dto: UpdateSchoolDto) {
     await this.findOne(id); // 404 early if missing
     return this.prisma.school.update({ where: { id }, data: dto });
+  }
+
+  /** Upload/replace du logo école — stocké sur R2, seule l'URL en base. */
+  async setLogo(id: string, file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Aucun fichier reçu.');
+    }
+    const school = await this.findOne(id);
+    const stored = await this.storage.upload({
+      buffer: file.buffer,
+      folder: 'schools',
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+    });
+    if (school.logoUrl) await this.storage.remove(school.logoUrl);
+    return this.prisma.school.update({ where: { id }, data: { logoUrl: stored.url } });
   }
 
   /**

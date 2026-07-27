@@ -3,10 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { AuditAction, OrderHistoryAction, Prisma } from '@prisma/client';
 import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from 'pdf-lib';
 import * as QRCode from 'qrcode';
-import { promises as fs } from 'fs';
-import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { StorageService } from '../storage/storage.service';
 import { ensureFound } from '../common/prisma/query.utils';
 
 const ORDER_INCLUDE = {
@@ -35,6 +34,7 @@ export class PdfService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   /**
@@ -50,17 +50,26 @@ export class PdfService {
 
     const { pdf, qr } = await this.buildOrderPdf(order);
 
-    const dir = join(this.config.get<string>('uploads.dir', './uploads'), 'orders');
-    await fs.mkdir(dir, { recursive: true });
-    const pdfName = `${order.orderNumber}.pdf`;
-    const qrName = `${order.orderNumber}-qr.png`;
-    await Promise.all([
-      fs.writeFile(join(dir, pdfName), pdf),
-      fs.writeFile(join(dir, qrName), qr),
+    // Envoi vers Cloudflare R2 (dossier `orders/`) — repli disque local si R2
+    // n'est pas configuré. Nom idempotent basé sur le numéro de commande :
+    // une régénération écrase proprement le fichier précédent.
+    const [pdfStored, qrStored] = await Promise.all([
+      this.storage.upload({
+        buffer: pdf,
+        folder: 'orders',
+        baseName: order.orderNumber,
+        mimeType: 'application/pdf',
+      }),
+      this.storage.upload({
+        buffer: qr,
+        folder: 'orders',
+        baseName: `${order.orderNumber}-qr`,
+        mimeType: 'image/png',
+      }),
     ]);
 
-    const pdfUrl = `/uploads/orders/${pdfName}`;
-    const qrCodeUrl = `/uploads/orders/${qrName}`;
+    const pdfUrl = pdfStored.url;
+    const qrCodeUrl = qrStored.url;
     const firstGeneration = !order.pdfUrl;
 
     await this.prisma.order.update({ where: { id: order.id }, data: { pdfUrl, qrCodeUrl } });

@@ -7,9 +7,13 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { IMAGE_UPLOAD_OPTIONS } from '../storage/file-upload';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -71,6 +75,17 @@ export class ProductsController {
   @ApiOperation({ summary: 'Mettre à jour le stock (Admin)' })
   updateStock(@Param('id') id: string, @Body() dto: UpdateStockDto) {
     return this.productsService.updateStock(id, dto);
+  }
+
+  @Post(':id/image')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: "Uploader l'image d'un produit (Admin) — image → Cloudflare R2" })
+  @UseInterceptors(FileInterceptor('file', IMAGE_UPLOAD_OPTIONS))
+  setImage(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.productsService.setImage(id, file);
   }
 
   @Delete(':id')

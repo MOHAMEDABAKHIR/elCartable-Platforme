@@ -148,3 +148,48 @@ export async function createCategory(payload: {
   const { data } = await api.post<Category>('/categories', payload);
   return data;
 }
+
+// ==========================================================
+// Listes officielles (back-office Admin) — import catalogue
+// ==========================================================
+
+export interface OfficialListItemPayload {
+  productId: string;
+  quantity: number;
+}
+
+/**
+ * Crée/remplace la liste officielle d'une école + niveau. Les articles doivent
+ * obligatoirement référencer des produits catalogués actifs (validé côté API).
+ */
+export async function createOfficialList(payload: {
+  schoolId: string;
+  gradeId: string;
+  items: OfficialListItemPayload[];
+}): Promise<SchoolList> {
+  const { data } = await api.post<SchoolList>('/school-lists/official', payload);
+  return data;
+}
+
+// ==========================================================
+// Uploads de fichiers (stockés sur R2, seule l'URL est persistée)
+// ==========================================================
+
+async function uploadImage<T>(url: string, file: File): Promise<T> {
+  const form = new FormData();
+  form.append('file', file);
+  const { data } = await api.post<T>(url, form);
+  return data;
+}
+
+export function uploadProductImage(productId: string, file: File): Promise<Product> {
+  return uploadImage<Product>(`/products/${productId}/image`, file);
+}
+
+export function uploadSchoolLogo(schoolId: string, file: File): Promise<School> {
+  return uploadImage<School>(`/schools/${schoolId}/logo`, file);
+}
+
+export function uploadUserAvatar(userId: string, file: File): Promise<PlatformUser> {
+  return uploadImage<PlatformUser>(`/users/${userId}/avatar`, file);
+}

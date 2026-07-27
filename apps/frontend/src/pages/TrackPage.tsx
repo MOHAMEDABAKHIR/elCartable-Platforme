@@ -8,6 +8,7 @@ import {
   orderStatusColor,
 } from '../lib/format';
 import { Alert, Badge, Button, Card, Field, Input, Spinner } from '../components/ui';
+import { SupportCTA } from '../components/SupportCTA';
 import type { Order } from '../lib/types';
 
 function StatusTimeline({ order }: { order: Order }) {
@@ -101,6 +102,12 @@ export function TrackPage() {
             <span>{formatMAD(order.totalAmount)}</span>
           </div>
         </Card>
+      )}
+
+      {order && (
+        <SupportCTA
+          message={`Bonjour, je souhaite de l'aide concernant ma commande ${order.orderNumber}.`}
+        />
       )}
     </div>
   );

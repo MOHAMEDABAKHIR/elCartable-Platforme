@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { AuditAction, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { StorageService } from '../storage/storage.service';
 import { SearchUserDto } from './dto/search-user.dto';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 
@@ -10,6 +11,7 @@ const SELECT_SAFE_FIELDS = {
   email: true,
   fullName: true,
   phone: true,
+  avatarUrl: true,
   role: true,
   isActive: true,
   mustSetPassword: true,
@@ -34,6 +36,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   private manageableRoles(currentUser: AuthenticatedUser): UserRole[] {
@@ -103,6 +106,32 @@ export class UsersService {
     });
 
     return updated;
+  }
+
+  /** Upload/replace de l'avatar (image) — stocké sur R2, seule l'URL en base. */
+  async setAvatar(id: string, file: Express.Multer.File, currentUser: AuthenticatedUser) {
+    if (!file) {
+      throw new BadRequestException('Aucun fichier reçu.');
+    }
+    // Autorisé sur son propre compte ou sur un compte géré (scope Admin/SuperAdmin).
+    if (id !== currentUser.id) {
+      await this.findOne(id, currentUser);
+    }
+
+    const existing = await this.prisma.user.findUnique({ where: { id }, select: { avatarUrl: true } });
+    const stored = await this.storage.upload({
+      buffer: file.buffer,
+      folder: 'avatars',
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+    });
+    if (existing?.avatarUrl) await this.storage.remove(existing.avatarUrl);
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { avatarUrl: stored.url },
+      select: SELECT_SAFE_FIELDS,
+    });
   }
 
   async reactivate(id: string, currentUser: AuthenticatedUser) {

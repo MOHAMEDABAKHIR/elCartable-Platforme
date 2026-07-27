@@ -7,9 +7,13 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { IMAGE_UPLOAD_OPTIONS } from '../storage/file-upload';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -61,6 +65,17 @@ export class SchoolsController {
   @ApiOperation({ summary: 'Modifier une école (Admin)' })
   update(@Param('id') id: string, @Body() dto: UpdateSchoolDto) {
     return this.schoolsService.update(id, dto);
+  }
+
+  @Post(':id/logo')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: "Uploader le logo d'une école (Admin) — image → Cloudflare R2" })
+  @UseInterceptors(FileInterceptor('file', IMAGE_UPLOAD_OPTIONS))
+  setLogo(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.schoolsService.setLogo(id, file);
   }
 
   @Delete(':id')
