@@ -13,7 +13,7 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
-  const apiPrefix = config.get<string>('apiPrefix', 'api/v1');
+  const apiPrefix = config.get<string>('apiPrefix', 'api');
   app.setGlobalPrefix(apiPrefix);
 
   // En production, les fichiers sont stockés sur Cloudflare R2 et servis depuis
