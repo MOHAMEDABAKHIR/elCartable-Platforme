@@ -101,9 +101,9 @@ export function LandingPage() {
         images={[
           { src: "../../logo-ecole-al-jabr.png", alt: "Ecole Al Jaber" },
           { src: "../../logo-ecole-al-madina.png", alt: "Ecole AL Madina" },
-          { src: "./public/logo-ecole-al-IRfane.png", alt: "Ecole Al IRfane" },
-          { src: "./public/logo-ecole-alqalam.png", alt: "Ecole Alqalam" },
-          { src: "./public/elCartable.png", alt: "Stylos" },
+          { src: "../../logo-ecole-al-IRfane.png", alt: "Ecole Al IRfane" },
+          { src: "../../logo-ecole-alqalam.png", alt: "Ecole Alqalam" },
+          { src: "../../elCartable.png", alt: "Stylos" },
         ]}
         durationSeconds={25}
       />
@@ -113,11 +113,11 @@ export function LandingPage() {
       </h1>
       <InfiniteimagescrollSupplies
         images={[
-          { src: "./public/trousse-rouge.png", alt: "trousse-rouge" },
+          { src: "../../trousse-rouge.png", alt: "trousse-rouge" },
           { src: "../../bleu-pen.png", alt: "stylo-bleu" },
           { src: "../../مرشدي في اللغة العربية جذع مشترك علمي.jpg", alt: "مرشدي في اللغة العربية جذع مشترك علمي" },
-          { src: "./public/trousse-beiges.png", alt: "trousse-beiges" },
-          { src: "./public/منار التربية الاسلامية.png", alt: "منار التربية الاسلامية" },
+          { src: "../../trousse-beiges.png", alt: "trousse-beiges" },
+          { src: "../../منار التربية الاسلامية.png", alt: "منار التربية الاسلامية" },
         ]}
         durationSeconds={15}
       />

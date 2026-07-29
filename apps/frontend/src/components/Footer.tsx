@@ -119,7 +119,7 @@ export const Footer: FC = () => {
           <div className="sm:col-span-2 lg:col-span-1 ">
             {/* TODO: remplacer par le chemin réel du logo si nécessaire */}
             <img
-              src="./public/elCartablecrop1.png"
+              src="../../elCartablecrop1.png"
               alt="ElCartable"
               className="transition-opacity duration-300 hover:opacity-100 py-5"
             />
