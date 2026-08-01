@@ -30,12 +30,12 @@ async function bootstrap() {
     app.useStaticAssets(join(process.cwd(), uploadsDir), { prefix: '/uploads' });
   }
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
-  console.log('FRONTEND URL =', config.get<string>('frontendUrl'));
-
+  
   app.enableCors({
     origin: config.get<string>('frontendUrl'),
     credentials: true,
   });
+  console.log('FRONTEND URL =', config.get<string>('frontendUrl'));
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -63,6 +63,7 @@ async function bootstrap() {
   }
 
   const port = config.get<number>('port', 3000);
+  console.log("=== VERSION BACKEND 01-08-2026 ===");
   await app.listen(port);
   logger.log(`elCartable API démarrée sur http://localhost:${port}/${apiPrefix}`);
   if (swaggerEnabled) {
