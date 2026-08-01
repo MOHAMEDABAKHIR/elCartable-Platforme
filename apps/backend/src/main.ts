@@ -64,6 +64,21 @@ async function bootstrap() {
 
   const port = config.get<number>('port', 3000);
   console.log("=== VERSION BACKEND 01-08-2026 ===");
+  const server = app.getHttpAdapter().getInstance();
+
+console.log("========== ROUTES ==========");
+
+server._router.stack
+  .filter((r) => r.route)
+  .forEach((r) => {
+    console.log(
+      Object.keys(r.route.methods)[0].toUpperCase(),
+      r.route.path,
+    );
+  });
+
+console.log("============================");
+  
   await app.listen(port);
   logger.log(`elCartable API démarrée sur http://localhost:${port}/${apiPrefix}`);
   if (swaggerEnabled) {
