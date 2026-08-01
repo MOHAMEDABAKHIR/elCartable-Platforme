@@ -30,6 +30,7 @@ async function bootstrap() {
     app.useStaticAssets(join(process.cwd(), uploadsDir), { prefix: '/uploads' });
   }
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+  console.log('FRONTEND URL =', config.get<string>('frontendUrl'));
 
   app.enableCors({
     origin: config.get<string>('frontendUrl'),
