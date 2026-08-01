@@ -5,6 +5,8 @@ import type { AuthResponse } from './types';
 const TOKEN_KEY = 'elc.accessToken';
 const REFRESH_TOKEN_KEY = 'elc.refreshToken';
 
+console.log("BASE URL =", import.meta.env.VITE_API_URL);
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
