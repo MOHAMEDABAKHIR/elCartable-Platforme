@@ -34,7 +34,7 @@ export function LandingPage() {
     <section className="pt-0 pb-6 sm:pb-10 px-4 sm:px-6 lg:px-0">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
         {/* LEFT */}
-        <div className="order-2 lg:order-1">
+        <div className="order-1 lg:order-1">
           {/* logo */}
           <div className="mb-6 sm:mb-8 overflow-hidden rounded-2xl">
             <img
@@ -95,7 +95,7 @@ export function LandingPage() {
         </div>
 
         {/* RIGHT */}
-        <div className="order-1 lg:order-2 flex justify-center lg:justify-end w-full">
+        <div className="hidden lg:flex lg:order-2 justify-center lg:justify-end w-full">
           <img
             src="../../hero1.png"
             alt="Hero"
