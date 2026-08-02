@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchGrades, fetchSchools } from '../lib/queries';
+import { fetchGrades, fetchSchools, fetchProducts } from '../lib/queries';
 import { Button } from '../components/ui';
 import InfiniteimagescrollSchool from '../components/InfiniteimagescrollSchool';
 import InfiniteimagescrollSupplies from '../components/InfiniteimagescrollSupplies';
@@ -14,6 +14,16 @@ export function LandingPage() {
 
   const schools = useQuery({ queryKey: ['schools'], queryFn: () => fetchSchools() });
   const grades = useQuery({ queryKey: ['grades'], queryFn: fetchGrades });
+  const products = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts() });
+
+  // Uniquement les écoles/produits qui ont bien une image à afficher dans la galerie
+  const schoolImages = (schools.data ?? [])
+    .filter((school) => !!school.logoUrl)
+    .map((school) => ({ src: school.logoUrl as string, alt: school.name }));
+
+  const productImages = (products.data ?? [])
+    .filter((product) => !!product.imageUrl)
+    .map((product) => ({ src: product.imageUrl as string, alt: product.name }));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,30 +108,18 @@ export function LandingPage() {
         Les écoles :
       </h1>
       <InfiniteimagescrollSchool
-        images={[
-          { src: "../../logo-ecole-al-jabr.png", alt: "Ecole Al Jaber" },
-          { src: "../../logo-ecole-al-madina.png", alt: "Ecole AL Madina" },
-          { src: "../../logo-ecole-al-IRfane.png", alt: "Ecole Al IRfane" },
-          { src: "../../logo-ecole-alqalam.png", alt: "Ecole Alqalam" },
-          { src: "../../elCartable.png", alt: "Stylos" },
-        ]}
+        images={schoolImages}
         durationSeconds={25}
       />
-      <CtaButtons primaryLabel="Chercher votre école ici ->"/>
+      <CtaButtons primaryLabel="Chercher votre école ici ->" />
       <h1 className="mb-4  text-center pt-15 sm:mb-6 text-3xl text-accent-900">
         Les fournitures scolaires :
       </h1>
       <InfiniteimagescrollSupplies
-        images={[
-          { src: "../../trousse-rouge.png", alt: "trousse-rouge" },
-          { src: "../../bleu-pen.png", alt: "stylo-bleu" },
-          { src: "../../مرشدي في اللغة العربية جذع مشترك علمي.jpg", alt: "مرشدي في اللغة العربية جذع مشترك علمي" },
-          { src: "../../trousse-beiges.png", alt: "trousse-beiges" },
-          { src: "../../منار التربية الاسلامية.png", alt: "منار التربية الاسلامية" },
-        ]}
+        images={productImages}
         durationSeconds={15}
       />
-       <CtaButtons primaryLabel="Commencez vos achats ->"/>
+      <CtaButtons primaryLabel="Commencez vos achats ->" />
     </section>
 
   );
