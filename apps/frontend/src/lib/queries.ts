@@ -5,6 +5,7 @@ import type {
   DashboardOverview,
   Grade,
   Order,
+  PaginatedResult,
   PlatformUser,
   Product,
   School,
@@ -12,19 +13,34 @@ import type {
   UserRole,
 } from './types';
 
-export async function fetchSchools(search?: string): Promise<School[]> {
-  const { data } = await api.get('/schools', { params: search ? { search } : undefined });
+/**
+ * Recherche publique (dropdown "choisissez une école"). Le backend plafonne
+ * déjà la réponse ; `limit` permet d'ajuster ce plafond selon l'usage
+ * (ex: un peu plus large pour le carrousel de logos que pour le dropdown).
+ */
+export async function fetchSchools(search?: string, limit?: number): Promise<School[]> {
+  const { data } = await api.get('/schools', { params: { search: search || undefined, limit } });
   return toList<School>(data);
 }
 
-export async function fetchSchoolsAdmin(): Promise<School[]> {
-  const { data } = await api.get('/schools/admin');
-  return toList<School>(data);
+/** Listing paginé (back-office) — le backend renvoie { data, meta }. */
+export async function fetchSchoolsAdmin(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}): Promise<PaginatedResult<School>> {
+  const { data } = await api.get<PaginatedResult<School>>('/schools/admin', { params });
+  return data;
 }
 
-export async function fetchProductsAdmin(): Promise<Product[]> {
-  const { data } = await api.get('/products/admin');
-  return toList<Product>(data);
+export async function fetchProductsAdmin(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  categoryId?: string;
+}): Promise<PaginatedResult<Product>> {
+  const { data } = await api.get<PaginatedResult<Product>>('/products/admin', { params });
+  return data;
 }
 
 export async function fetchGrades(): Promise<Grade[]> {

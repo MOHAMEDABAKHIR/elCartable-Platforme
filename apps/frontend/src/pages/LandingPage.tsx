@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { Building2, GraduationCap } from 'lucide-react';
 import { fetchGrades, fetchSchools, fetchProducts } from '../lib/queries';
 import { Button } from '../components/ui';
+import { SearchableSelect } from '../components/SearchableSelect';
 import InfiniteimagescrollSchool from '../components/InfiniteimagescrollSchool';
 import InfiniteimagescrollSupplies from '../components/InfiniteimagescrollSupplies';
 import CtaButtons from '../components/CTA';
-import { SearchableSelect } from '../components/SearchableSelect';
-import { Building2, GraduationCap } from 'lucide-react';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -15,14 +15,18 @@ export function LandingPage() {
   const [gradeId, setGradeId] = useState('');
   const [schoolSearch, setSchoolSearch] = useState('');
 
-  const schools = useQuery({ queryKey: ['schools'], queryFn: () => fetchSchools() });
-  
+  // Carrousel décoratif : un échantillon suffit, pas besoin de charger toutes les écoles.
+  const CAROUSEL_LIMIT = 100;
+  const schools = useQuery({
+    queryKey: ['schools', 'carousel'],
+    queryFn: () => fetchSchools(undefined, CAROUSEL_LIMIT),
+  });
+  // Dropdown "choisissez une école" : recherche plafonnée côté serveur (20 résultats).
   const schoolResults = useQuery({
     queryKey: ['schools', schoolSearch],
     queryFn: () => fetchSchools(schoolSearch || undefined),
     placeholderData: (previous) => previous,
   });
-
   const grades = useQuery({ queryKey: ['grades'], queryFn: fetchGrades });
   const products = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts() });
 
@@ -112,7 +116,7 @@ export function LandingPage() {
         {/* RIGHT */}
         <div className="hidden lg:flex lg:order-2 justify-center lg:justify-end w-full">
           <img
-            src="../../hero1.png"
+            src="../../hero-desktop-1.png"
             alt="Hero"
             className="w-full max-w-[280px] sm:max-w-[400px] lg:max-w-none lg:max-h-[700px] h-auto object-contain"
           />

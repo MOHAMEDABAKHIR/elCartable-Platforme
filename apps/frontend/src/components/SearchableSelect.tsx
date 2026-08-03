@@ -49,7 +49,24 @@ export function SearchableSelect({
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selected = useMemo(() => options.find((o) => o.id === value), [options, value]);
+  // On garde l'option sélectionnée en mémoire séparément de `options` : dès
+  // qu'on ferme le menu, la recherche est réinitialisée et le parent
+  // recharge la liste "par défaut" (les 20 premières écoles) — si l'école
+  // choisie venait d'une recherche, elle ne s'y trouve plus. Sans cet état
+  // séparé, `options.find(...)` ne la retrouve plus et le champ paraît vide
+  // alors que la valeur est en réalité toujours sélectionnée.
+  const [selectedOption, setSelectedOption] = useState<SearchableSelectOption | null>(null);
+
+  useEffect(() => {
+    if (!value) {
+      setSelectedOption(null);
+      return;
+    }
+    const match = options.find((o) => o.id === value);
+    if (match) setSelectedOption(match);
+  }, [value, options]);
+
+  const selected = selectedOption;
 
   // Close on outside click.
   useEffect(() => {
@@ -89,8 +106,9 @@ export function SearchableSelect({
     );
   }, [options, query, onSearch]);
 
-  function select(id: string) {
-    onChange(id);
+  function select(opt: SearchableSelectOption) {
+    setSelectedOption(opt);
+    onChange(opt.id);
     setOpen(false);
   }
 
@@ -108,7 +126,7 @@ export function SearchableSelect({
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const opt = filtered[highlighted];
-      if (opt) select(opt.id);
+      if (opt) select(opt);
     }
   }
 
@@ -161,12 +179,12 @@ export function SearchableSelect({
                   <button
                     type="button"
                     onMouseEnter={() => setHighlighted(i)}
-                    onClick={() => select(opt.id)}
+                    onClick={() => select(opt)}
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                       i === highlighted ? 'bg-brand-50' : ''
                     } ${opt.id === value ? 'bg-brand-100/70' : ''}`}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-100 text-brand-500">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-brand-500">
                       {opt.iconUrl ? (
                         <img src={opt.iconUrl} alt="" className="h-full w-full object-cover" />
                       ) : (

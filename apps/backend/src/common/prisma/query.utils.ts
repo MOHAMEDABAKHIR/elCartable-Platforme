@@ -36,3 +36,39 @@ export function ensureFound<T>(entity: T | null | undefined, message: string): T
   }
   return entity;
 }
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
+/**
+ * Normalise `page`/`limit` en `skip`/`take` Prisma. Toujours borné (voir
+ * `PaginationDto`) pour éviter qu'un `findMany` sans filtre ramène la table
+ * entière — c'est ce plafond qui protège les listes qui peuvent devenir
+ * volumineuses (écoles, produits, ...).
+ */
+export function paginationParams(
+  page?: number,
+  limit?: number,
+  defaultLimit = 20,
+): { skip: number; take: number; page: number; limit: number } {
+  const take = limit ?? defaultLimit;
+  const currentPage = page && page > 0 ? page : 1;
+  return { skip: (currentPage - 1) * take, take, page: currentPage, limit: take };
+}
+
+/** Enveloppe `data` + métadonnées de pagination, prête à renvoyer au client. */
+export function buildPaginatedResult<T>(data: T[], total: number, page: number, limit: number): PaginatedResult<T> {
+  return {
+    data,
+    meta: { total, page, limit, totalPages: Math.max(Math.ceil(total / limit), 1) },
+  };
+}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiErrorMessage } from '../../lib/api';
 import {
@@ -19,24 +19,46 @@ import {
   Select,
   Spinner,
 } from '../../components/ui';
+import { SearchableSelect } from '../../components/SearchableSelect';
+
+const PRODUCT_PICKER_LIMIT = 40;
 
 /**
  * Liste officielle = import d'articles catalogués. L'admin choisit une école +
  * un niveau, puis sélectionne des produits du catalogue (jamais de libellé
  * libre) : l'API valide que chaque productId existe et est actif.
+ *
+ * École et produits sont recherchés côté serveur (paginé/plafonné) plutôt que
+ * chargés en intégralité — la table peut contenir un très grand nombre d'écoles
+ * ou de produits.
  */
 export function AdminOfficialListsPage() {
   const queryClient = useQueryClient();
   const [schoolId, setSchoolId] = useState('');
+  const [schoolSearch, setSchoolSearch] = useState('');
   const [gradeId, setGradeId] = useState('');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selected, setSelected] = useState<Record<string, number>>({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const schools = useQuery({ queryKey: ['schools', 'admin'], queryFn: fetchSchoolsAdmin });
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const schoolResults = useQuery({
+    queryKey: ['schools', 'admin', 'picker', schoolSearch],
+    queryFn: () => fetchSchoolsAdmin({ search: schoolSearch || undefined, limit: 20 }),
+    placeholderData: (previous) => previous,
+  });
   const grades = useQuery({ queryKey: ['grades'], queryFn: fetchGrades });
-  const products = useQuery({ queryKey: ['products', 'admin'], queryFn: fetchProductsAdmin });
+  const products = useQuery({
+    queryKey: ['products', 'admin', 'picker', debouncedSearch],
+    queryFn: () => fetchProductsAdmin({ search: debouncedSearch || undefined, limit: PRODUCT_PICKER_LIMIT }),
+    placeholderData: (previous) => previous,
+  });
 
   const existing = useQuery({
     queryKey: ['school-list', schoolId, gradeId],
@@ -44,16 +66,12 @@ export function AdminOfficialListsPage() {
     enabled: Boolean(schoolId && gradeId),
   });
 
+  // Le picker ne montre que les produits actifs (les inactifs restent visibles
+  // dans /admin/produits mais ne doivent pas atterrir dans une nouvelle liste).
   const activeProducts = useMemo(
-    () => (products.data ?? []).filter((p) => p.isActive),
+    () => (products.data?.data ?? []).filter((p) => p.isActive),
     [products.data],
   );
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return activeProducts;
-    return activeProducts.filter((p) => p.name.toLowerCase().includes(q));
-  }, [activeProducts, search]);
 
   const selectedEntries = Object.entries(selected).filter(([, qty]) => qty > 0);
   const productById = useMemo(
@@ -97,14 +115,21 @@ export function AdminOfficialListsPage() {
       <Card>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="École">
-            <Select value={schoolId} onChange={(e) => setSchoolId(e.target.value)}>
-              <option value="">Choisir une école</option>
-              {schools.data?.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}{s.city ? ` - ${s.city}` : ''}
-                </option>
-              ))}
-            </Select>
+            <SearchableSelect
+              value={schoolId}
+              onChange={setSchoolId}
+              onSearch={setSchoolSearch}
+              loading={schoolResults.isLoading}
+              options={(schoolResults.data?.data ?? []).map((s) => ({
+                id: s.id,
+                label: s.name,
+                subtitle: s.city ?? undefined,
+                iconUrl: s.logoUrl,
+              }))}
+              placeholder="Choisir une école"
+              searchPlaceholder="Rechercher une école..."
+              emptyLabel="Aucune école trouvée"
+            />
           </Field>
           <Field label="Niveau">
             <Select value={gradeId} onChange={(e) => setGradeId(e.target.value)}>
@@ -155,11 +180,11 @@ export function AdminOfficialListsPage() {
             <div className="mt-4">
               <Spinner />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : activeProducts.length === 0 ? (
             <p className="mt-4 text-sm text-brand-500">Aucun produit actif ne correspond.</p>
           ) : (
             <ul className="mt-4 divide-y divide-brand-50">
-              {filtered.map((p) => {
+              {activeProducts.map((p) => {
                 const qty = selected[p.id] ?? 0;
                 return (
                   <li key={p.id} className="flex items-center gap-3 py-2">
@@ -175,7 +200,7 @@ export function AdminOfficialListsPage() {
                     <Input
                       type="number"
                       min={0}
-                      className="w-20"
+                      className="max-w-50 flex-2"
                       value={qty}
                       onChange={(e) => setQty(p.id, Number(e.target.value))}
                     />

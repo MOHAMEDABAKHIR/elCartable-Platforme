@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Search } from 'lucide-react';
 import { api, apiErrorMessage } from '../../lib/api';
 import { fetchCategories, fetchProductsAdmin, uploadProductImage } from '../../lib/queries';
 import { formatMAD } from '../../lib/format';
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Select, Spinner, Textarea } from '../../components/ui';
 import { ImageUploadButton } from '../../components/ImageUploadButton';
+import { Pagination } from '../../components/Pagination';
 
 interface ProductForm {
   name: string;
@@ -15,14 +17,30 @@ interface ProductForm {
 }
 
 const EMPTY: ProductForm = { name: '', price: 0, description: '', categoryId: '', stock: 0 };
+const PAGE_SIZE = 20;
 
 export function AdminProductsPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ProductForm>(EMPTY);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const categories = useQuery({ queryKey: ['categories'], queryFn: fetchCategories });
-  const products = useQuery({ queryKey: ['products', 'admin'], queryFn: fetchProductsAdmin });
+  const products = useQuery({
+    queryKey: ['products', 'admin', page, debouncedSearch],
+    queryFn: () => fetchProductsAdmin({ page, limit: PAGE_SIZE, search: debouncedSearch || undefined }),
+    placeholderData: (previous) => previous,
+  });
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -116,9 +134,19 @@ export function AdminProductsPage() {
         </form>
       </Card>
 
+      <div className="relative max-w-sm">
+        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-400" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher un produit..."
+          className="pl-9"
+        />
+      </div>
+
       {products.isLoading ? (
         <Spinner />
-      ) : products.data && products.data.length > 0 ? (
+      ) : products.data && products.data.data.length > 0 ? (
         <Card className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead>
@@ -132,7 +160,7 @@ export function AdminProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {products.data.map((p) => (
+              {products.data.data.map((p) => (
                 <tr key={p.id} className="border-b border-brand-50">
                   <td className="px-4 py-3">
                     <div className="flex flex-col items-start gap-1">
@@ -168,9 +196,13 @@ export function AdminProductsPage() {
               ))}
             </tbody>
           </table>
+          <Pagination meta={products.data.meta} onPageChange={setPage} />
         </Card>
       ) : (
-        <EmptyState title="Aucun produit" description="Créez votre premier produit ci-dessus." />
+        <EmptyState
+          title="Aucun produit"
+          description={debouncedSearch ? 'Aucun résultat pour cette recherche.' : 'Créez votre premier produit ci-dessus.'}
+        />
       )}
     </div>
   );

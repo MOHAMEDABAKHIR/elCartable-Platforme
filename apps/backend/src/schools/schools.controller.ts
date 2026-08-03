@@ -22,6 +22,7 @@ import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { SearchSchoolDto } from './dto/search-school.dto';
+import { SearchSchoolAdminDto } from './dto/search-school-admin.dto';
 
 @ApiTags('Schools')
 @Controller('schools')
@@ -38,9 +39,9 @@ export class SchoolsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Liste complète des écoles (Admin, y compris inactives)' })
-  findAllForAdmin() {
-    return this.schoolsService.findAllForAdmin();
+  @ApiOperation({ summary: 'Liste paginée des écoles (Admin, y compris inactives)' })
+  findAllForAdmin(@Query() query: SearchSchoolAdminDto) {
+    return this.schoolsService.findAllForAdmin(query);
   }
 
   @Get(':id')
