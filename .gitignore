@@ -36,3 +36,11 @@ apps/backend/uploads/
 
 # Test coverage
 coverage/
+
+# Python
+*.py
+*.pyc
+__pycache__/
+
+# CSV
+*.csv

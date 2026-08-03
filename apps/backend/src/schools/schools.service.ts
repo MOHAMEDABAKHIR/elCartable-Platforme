@@ -1,10 +1,17 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { containsInsensitive, ensureFound } from '../common/prisma/query.utils';
+import { buildPaginatedResult, containsInsensitive, ensureFound, paginationParams } from '../common/prisma/query.utils';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { SearchSchoolDto } from './dto/search-school.dto';
+import { SearchSchoolAdminDto } from './dto/search-school-admin.dto';
+
+/** Plafond du dropdown public : une recherche qui matche encore beaucoup
+ * d'écoles n'a pas besoin d'en renvoyer plus — l'utilisateur affine en tapant. */
+const PUBLIC_SEARCH_DEFAULT_LIMIT = 20;
+const ADMIN_LIST_DEFAULT_LIMIT = 20;
 
 @Injectable()
 export class SchoolsService {
@@ -15,28 +22,46 @@ export class SchoolsService {
 
   /**
    * Public search used by the visitor landing page ("choisir une école").
-   * Only returns active schools; free-text match on name or city.
+   * Only returns active schools; free-text match on name or city. Toujours
+   * plafonné (voir PUBLIC_SEARCH_DEFAULT_LIMIT) : ce endpoint alimente un
+   * dropdown de recherche, jamais un listing complet.
    */
   async searchPublic(query: SearchSchoolDto) {
-    return this.prisma.school.findMany({
-      where: {
-        isActive: true,
-        ...(query.search
-          ? {
-              OR: [
-                { name: containsInsensitive(query.search) },
-                { city: containsInsensitive(query.search) },
-              ],
-            }
-          : {}),
-      },
-      orderBy: { name: 'asc' },
-    });
+    const { skip, take } = paginationParams(query.page, query.limit, PUBLIC_SEARCH_DEFAULT_LIMIT);
+    const where: Prisma.SchoolWhereInput = {
+      isActive: true,
+      ...(query.search
+        ? {
+            OR: [
+              { name: containsInsensitive(query.search) },
+              { city: containsInsensitive(query.search) },
+            ],
+          }
+        : {}),
+    };
+    return this.prisma.school.findMany({ where, orderBy: { name: 'asc' }, skip, take });
   }
 
-  /** Full listing for Admin/SuperAdmin back-office (includes inactive schools). */
-  async findAllForAdmin() {
-    return this.prisma.school.findMany({ orderBy: { name: 'asc' } });
+  /**
+   * Listing paginé pour le back-office (Admin/SuperAdmin), inclut les écoles
+   * inactives. Filtrable par nom/ville — indispensable dès que la table
+   * dépasse quelques dizaines d'entrées.
+   */
+  async findAllForAdmin(query: SearchSchoolAdminDto) {
+    const { skip, take, page, limit } = paginationParams(query.page, query.limit, ADMIN_LIST_DEFAULT_LIMIT);
+    const where: Prisma.SchoolWhereInput = query.search
+      ? {
+          OR: [
+            { name: containsInsensitive(query.search) },
+            { city: containsInsensitive(query.search) },
+          ],
+        }
+      : {};
+    const [data, total] = await Promise.all([
+      this.prisma.school.findMany({ where, orderBy: { name: 'asc' }, skip, take }),
+      this.prisma.school.count({ where }),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: string) {

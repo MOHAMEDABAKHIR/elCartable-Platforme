@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Search } from 'lucide-react';
 import { api, apiErrorMessage } from '../../lib/api';
 import { fetchSchoolsAdmin, uploadSchoolLogo } from '../../lib/queries';
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Spinner } from '../../components/ui';
 import { ImageUploadButton } from '../../components/ImageUploadButton';
+import { Pagination } from '../../components/Pagination';
 
 interface SchoolForm {
   name: string;
@@ -12,13 +14,31 @@ interface SchoolForm {
 }
 
 const EMPTY: SchoolForm = { name: '', city: '', address: '' };
+const PAGE_SIZE = 20;
 
 export function AdminSchoolsPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SchoolForm>(EMPTY);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
 
-  const schools = useQuery({ queryKey: ['schools', 'admin'], queryFn: fetchSchoolsAdmin });
+  // Debounce la recherche pour ne pas déclencher un appel API à chaque frappe,
+  // et revenir en page 1 dès que le filtre change.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const schools = useQuery({
+    queryKey: ['schools', 'admin', page, debouncedSearch],
+    queryFn: () => fetchSchoolsAdmin({ page, limit: PAGE_SIZE, search: debouncedSearch || undefined }),
+    placeholderData: (previous) => previous,
+  });
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -83,9 +103,19 @@ export function AdminSchoolsPage() {
         </form>
       </Card>
 
+      <div className="relative max-w-sm">
+        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-400" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher par nom ou ville..."
+          className="pl-9"
+        />
+      </div>
+
       {schools.isLoading ? (
         <Spinner />
-      ) : schools.data && schools.data.length > 0 ? (
+      ) : schools.data && schools.data.data.length > 0 ? (
         <Card className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead>
@@ -98,7 +128,7 @@ export function AdminSchoolsPage() {
               </tr>
             </thead>
             <tbody>
-              {schools.data.map((s) => (
+              {schools.data.data.map((s) => (
                 <tr key={s.id} className="border-b border-brand-50">
                   <td className="px-4 py-3">
                     <div className="flex flex-col items-start gap-1">
@@ -133,9 +163,13 @@ export function AdminSchoolsPage() {
               ))}
             </tbody>
           </table>
+          <Pagination meta={schools.data.meta} onPageChange={setPage} />
         </Card>
       ) : (
-        <EmptyState title="Aucune école" description="Ajoutez votre première école ci-dessus." />
+        <EmptyState
+          title="Aucune école"
+          description={debouncedSearch ? 'Aucun résultat pour cette recherche.' : 'Ajoutez votre première école ci-dessus.'}
+        />
       )}
     </div>
   );

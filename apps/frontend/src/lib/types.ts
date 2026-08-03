@@ -1,3 +1,15 @@
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
 export type UserRole = 'COMMERCIAL' | 'ADMIN' | 'SUPER_ADMIN';
 
 export type OrderStatus =

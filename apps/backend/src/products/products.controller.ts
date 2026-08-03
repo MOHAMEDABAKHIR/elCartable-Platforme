@@ -22,6 +22,7 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductDto } from './dto/search-product.dto';
+import { SearchProductAdminDto } from './dto/search-product-admin.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
 
 @ApiTags('Products')
@@ -39,9 +40,9 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Liste complète des produits (Admin, y compris inactifs)' })
-  findAllForAdmin() {
-    return this.productsService.findAllForAdmin();
+  @ApiOperation({ summary: 'Liste paginée des produits (Admin, y compris inactifs)' })
+  findAllForAdmin(@Query() query: SearchProductAdminDto) {
+    return this.productsService.findAllForAdmin(query);
   }
 
   @Get(':id')

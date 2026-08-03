@@ -1,11 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { containsInsensitive, ensureFound } from '../common/prisma/query.utils';
+import { buildPaginatedResult, containsInsensitive, ensureFound, paginationParams } from '../common/prisma/query.utils';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SearchProductDto } from './dto/search-product.dto';
+import { SearchProductAdminDto } from './dto/search-product-admin.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
+
+const PUBLIC_SEARCH_DEFAULT_LIMIT = 40;
+const ADMIN_LIST_DEFAULT_LIMIT = 20;
 
 @Injectable()
 export class ProductsService {
@@ -14,24 +19,42 @@ export class ProductsService {
     private readonly storage: StorageService,
   ) {}
 
-  /** Public catalog browsing — used when the visitor adds extra items to a list. */
+  /**
+   * Public catalog browsing — used when the visitor adds extra items to a
+   * list. Plafonné (voir PUBLIC_SEARCH_DEFAULT_LIMIT) : la recherche/le
+   * filtre catégorie doit faire le tri, pas un scroll sur tout le catalogue.
+   */
   async searchPublic(query: SearchProductDto) {
+    const { skip, take } = paginationParams(query.page, query.limit, PUBLIC_SEARCH_DEFAULT_LIMIT);
+    const where: Prisma.ProductWhereInput = {
+      isActive: true,
+      ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(query.search ? { name: containsInsensitive(query.search) } : {}),
+    };
     return this.prisma.product.findMany({
-      where: {
-        isActive: true,
-        ...(query.categoryId ? { categoryId: query.categoryId } : {}),
-        ...(query.search ? { name: containsInsensitive(query.search) } : {}),
-      },
+      where,
       include: { category: true },
       orderBy: { name: 'asc' },
+      skip,
+      take,
     });
   }
 
-  async findAllForAdmin() {
-    return this.prisma.product.findMany({
-      include: { category: true },
-      orderBy: { name: 'asc' },
-    });
+  /**
+   * Listing paginé pour le back-office (Admin/SuperAdmin), inclut les
+   * produits inactifs. Filtrable par nom/catégorie.
+   */
+  async findAllForAdmin(query: SearchProductAdminDto) {
+    const { skip, take, page, limit } = paginationParams(query.page, query.limit, ADMIN_LIST_DEFAULT_LIMIT);
+    const where: Prisma.ProductWhereInput = {
+      ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(query.search ? { name: containsInsensitive(query.search) } : {}),
+    };
+    const [data, total] = await Promise.all([
+      this.prisma.product.findMany({ where, include: { category: true }, orderBy: { name: 'asc' }, skip, take }),
+      this.prisma.product.count({ where }),
+    ]);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: string) {
