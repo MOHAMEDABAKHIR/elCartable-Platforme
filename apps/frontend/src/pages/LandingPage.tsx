@@ -6,13 +6,23 @@ import { Button } from '../components/ui';
 import InfiniteimagescrollSchool from '../components/InfiniteimagescrollSchool';
 import InfiniteimagescrollSupplies from '../components/InfiniteimagescrollSupplies';
 import CtaButtons from '../components/CTA';
+import { SearchableSelect } from '../components/SearchableSelect';
+import { Building2, GraduationCap } from 'lucide-react';
 
 export function LandingPage() {
   const navigate = useNavigate();
   const [schoolId, setSchoolId] = useState('');
   const [gradeId, setGradeId] = useState('');
+  const [schoolSearch, setSchoolSearch] = useState('');
 
   const schools = useQuery({ queryKey: ['schools'], queryFn: () => fetchSchools() });
+  
+  const schoolResults = useQuery({
+    queryKey: ['schools', schoolSearch],
+    queryFn: () => fetchSchools(schoolSearch || undefined),
+    placeholderData: (previous) => previous,
+  });
+
   const grades = useQuery({ queryKey: ['grades'], queryFn: fetchGrades });
   const products = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts() });
 
@@ -62,33 +72,38 @@ export function LandingPage() {
 
           {/* Formulaire */}
           <form onSubmit={submit} className="flex flex-col gap-3 sm:gap-4 md:flex-row">
-            <select
+            <SearchableSelect
+              className="md:flex-1"
               value={schoolId}
-              onChange={(e) => setSchoolId(e.target.value)}
-              className="h-12 sm:h-14 w-full md:flex-1 rounded-xl border border-gray-300 px-4"
+              onChange={setSchoolId}
+              onSearch={setSchoolSearch}
+              loading={schoolResults.isLoading}
+              options={(schoolResults.data ?? []).map((school) => ({
+                id: school.id,
+                label: school.name,
+                subtitle: school.city ?? undefined,
+                iconUrl: school.logoUrl,
+              }))}
+              placeholder="Choisissez une école"
+              searchPlaceholder="Rechercher une école..."
+              emptyLabel="Aucune école trouvée"
+              icon={<Building2 size={18} />}
               required
-            >
-              <option value="">Choisissez une école</option>
-              {schools.data?.map((school) => (
-                <option key={school.id} value={school.id}>
-                  {school.name}{school.city ? ` - ${school.city}` : ""}
-                </option>
-              ))}
-            </select>
+              name="schoolId"
+            />
 
-            <select
+            <SearchableSelect
+              className="md:flex-1"
               value={gradeId}
-              onChange={(e) => setGradeId(e.target.value)}
-              className="h-12 sm:h-14 w-full md:flex-1 rounded-xl border border-gray-300 px-4"
+              onChange={setGradeId}
+              options={(grades.data ?? []).map((grade) => ({ id: grade.id, label: grade.name }))}
+              placeholder="Choisissez un niveau"
+              searchPlaceholder="Rechercher un niveau..."
+              emptyLabel="Aucun niveau trouvé"
+              icon={<GraduationCap size={18} />}
               required
-            >
-              <option value="">Choisissez un niveau</option>
-              {grades.data?.map((grade) => (
-                <option key={grade.id} value={grade.id}>
-                  {grade.name}
-                </option>
-              ))}
-            </select>
+              name="gradeId"
+            />
 
             <Button className="w-full md:w-auto shrink-0">Voir la liste</Button>
           </form>
