@@ -18,9 +18,29 @@ import type {
  * déjà la réponse ; `limit` permet d'ajuster ce plafond selon l'usage
  * (ex: un peu plus large pour le carrousel de logos que pour le dropdown).
  */
-export async function fetchSchools(search?: string, limit?: number): Promise<School[]> {
-  const { data } = await api.get('/schools', { params: { search: search || undefined, limit } });
+export async function fetchSchools(params?: {
+  city?: string;
+  search?: string;
+  limit?: number;
+}): Promise<School[]> {
+  const { data } = await api.get('/schools', {
+    params,
+  });
+
   return toList<School>(data);
+}
+export async function fetchSchool(id: string): Promise<School> {
+  const { data } = await api.get(`/schools/${id}`);
+  return data;
+}
+
+export async function fetchSchoolGrades(schoolId: string): Promise<Grade[]> {
+  const { data } = await api.get(`/schools/${schoolId}/grades`);
+  return data;
+}
+export async function fetchCities(): Promise<string[]> {
+  const response = await api.get('/schools/cities');
+  return response.data;
 }
 
 /** Listing paginé (back-office) — le backend renvoie { data, meta }. */
@@ -208,4 +228,22 @@ export function uploadSchoolLogo(schoolId: string, file: File): Promise<School> 
 
 export function uploadUserAvatar(userId: string, file: File): Promise<PlatformUser> {
   return uploadImage<PlatformUser>(`/users/${userId}/avatar`, file);
+}
+export async function getSchoolGrades(schoolId: string) {
+  const { data } = await api.get<Grade[]>(`/schools/${schoolId}/grades`);
+  return data;
+}
+
+export async function setSchoolGrades(
+  schoolId: string,
+  gradeIds: string[],
+) {
+  const { data } = await api.post(
+    `/schools/${schoolId}/grades`,
+    {
+      gradeIds,
+    },
+  );
+
+  return data;
 }

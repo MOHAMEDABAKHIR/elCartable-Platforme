@@ -7,4 +7,12 @@ export class SearchSchoolDto extends PaginationDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({
+    description: "Filtrer les écoles par ville",
+    example: "Casablanca",
+  })
+  @IsOptional()
+  @IsString()
+  city?: string;
 }

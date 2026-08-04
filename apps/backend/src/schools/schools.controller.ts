@@ -23,11 +23,12 @@ import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { SearchSchoolDto } from './dto/search-school.dto';
 import { SearchSchoolAdminDto } from './dto/search-school-admin.dto';
+import { SetSchoolGradesDto } from './dto/set-school-grades.dto';
 
 @ApiTags('Schools')
 @Controller('schools')
 export class SchoolsController {
-  constructor(private readonly schoolsService: SchoolsService) {}
+  constructor(private readonly schoolsService: SchoolsService) { }
 
   @Get()
   @ApiOperation({ summary: 'Recherche publique d’écoles (visiteur, sans authentification)' })
@@ -42,6 +43,32 @@ export class SchoolsController {
   @ApiOperation({ summary: 'Liste paginée des écoles (Admin, y compris inactives)' })
   findAllForAdmin(@Query() query: SearchSchoolAdminDto) {
     return this.schoolsService.findAllForAdmin(query);
+  }
+  @Get('cities')
+  @ApiOperation({ summary: 'Liste des villes contenant au moins une école' })
+  findCities() {
+    return this.schoolsService.findCities();
+  }
+  @Get(':id/grades')
+  @ApiOperation({
+    summary: "Niveaux disponibles d'une école",
+  })
+  findGrades(@Param('id') id: string) {
+    return this.schoolsService.findGrades(id);
+  }
+
+  @Post(':id/grades')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Associer les niveaux à une école",
+  })
+  setGrades(
+    @Param('id') id: string,
+    @Body() dto: SetSchoolGradesDto,
+  ) {
+    return this.schoolsService.setGrades(id, dto.gradeIds);
   }
 
   @Get(':id')

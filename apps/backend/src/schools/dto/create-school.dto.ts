@@ -7,10 +7,10 @@ export class CreateSchoolDto {
   @MinLength(2)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Casablanca' })
-  @IsOptional()
+  @ApiProperty({ example: 'Casablanca' })
   @IsString()
-  city?: string;
+  @MinLength(2)
+  city: string;
 
   @ApiPropertyOptional({ example: '12 Rue des Écoles, Casablanca' })
   @IsOptional()

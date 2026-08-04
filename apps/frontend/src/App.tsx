@@ -19,7 +19,8 @@ import { AdminOfficialListsPage } from './pages/admin/AdminOfficialListsPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminCatalogRefsPage } from './pages/admin/AdminCatalogRefsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
-
+import { SchoolsByCityPage } from './pages/SchoolsByCityPage';
+import { SchoolPage } from './pages/SchoolPage';
 export function App() {
   return (
     <Routes>
@@ -32,6 +33,8 @@ export function App() {
         <Route path="commande/confirmee" element={<OrderConfirmationPage />} />
         <Route path="suivi" element={<TrackPage />} />
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="/villes/:city" element={<SchoolsByCityPage />}/>
+        <Route path="/ecoles/:schoolId" element={<SchoolPage />} />
       </Route>
 
       <Route path="/connexion" element={<LoginPage />} />
