@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Building2, GraduationCap } from 'lucide-react';
-import { fetchGrades, fetchCities, fetchSchools, fetchProducts } from '../lib/queries';
+import { fetchCities, fetchSchools, fetchProducts } from '../lib/queries';
 import { Button } from '../components/ui';
 import { SearchableSelect } from '../components/SearchableSelect';
 import InfiniteimagescrollSchool from '../components/InfiniteimagescrollSchool';
 import InfiniteimagescrollSupplies from '../components/InfiniteimagescrollSupplies';
 import CtaButtons from '../components/CTA';
+import { Building2 } from 'lucide-react';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -27,7 +27,6 @@ export function LandingPage() {
     queryKey: ['cities'],
     queryFn: fetchCities,
   });
-  const grades = useQuery({ queryKey: ['grades'], queryFn: fetchGrades });
   const products = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts() });
 
   // Uniquement les écoles/produits qui ont bien une image à afficher dans la galerie
