@@ -20,8 +20,10 @@ import {
   Spinner,
 } from '../../components/ui';
 import { SearchableSelect } from '../../components/SearchableSelect';
+import { Pagination } from '../../components/Pagination';
+import type { Product } from '../../lib/types';
 
-const PRODUCT_PICKER_LIMIT = 40;
+const PAGE_SIZE = 20;
 
 /**
  * Liste officielle = import d'articles catalogués. L'admin choisit une école +
@@ -39,14 +41,28 @@ export function AdminOfficialListsPage() {
   const [gradeId, setGradeId] = useState('');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Record<string, number>>({});
+  // Accumule les produits déjà vus (page courante + articles d'une liste existante)
+  // pour garder le bon prix/nom même quand un article n'est plus sur la page affichée.
+  const [knownProducts, setKnownProducts] = useState<Record<string, Product>>({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
     return () => clearTimeout(t);
   }, [search]);
+
+  // Nouveau couple école/niveau : on repart d'une sélection vierge, la liste
+  // existante (si elle existe) sera rechargée dans `selected` ci-dessous.
+  useEffect(() => {
+    setSelected({});
+    setPage(1);
+  }, [schoolId, gradeId]);
 
   const schoolResults = useQuery({
     queryKey: ['schools', 'admin', 'picker', schoolSearch],
@@ -55,8 +71,8 @@ export function AdminOfficialListsPage() {
   });
   const grades = useQuery({ queryKey: ['grades'], queryFn: fetchGrades });
   const products = useQuery({
-    queryKey: ['products', 'admin', 'picker', debouncedSearch],
-    queryFn: () => fetchProductsAdmin({ search: debouncedSearch || undefined, limit: PRODUCT_PICKER_LIMIT }),
+    queryKey: ['products', 'admin', 'picker', page, debouncedSearch],
+    queryFn: () => fetchProductsAdmin({ page, limit: PAGE_SIZE, search: debouncedSearch || undefined }),
     placeholderData: (previous) => previous,
   });
 
@@ -73,13 +89,38 @@ export function AdminOfficialListsPage() {
     [products.data],
   );
 
+  // Mémorise les produits de la page courante...
+  useEffect(() => {
+    if (activeProducts.length === 0) return;
+    setKnownProducts((prev) => {
+      const next = { ...prev };
+      for (const p of activeProducts) next[p.id] = p;
+      return next;
+    });
+  }, [activeProducts]);
+
+  // ...et pré-remplit la sélection avec la liste déjà existante pour ce
+  // couple école/niveau, afin de pouvoir la modifier directement.
+  useEffect(() => {
+    const items = existing.data?.items ?? [];
+    if (items.length === 0) return;
+    const prefilled: Record<string, number> = {};
+    const productsFromList: Record<string, Product> = {};
+    for (const item of items) {
+      if (!item.productId) continue; // article personnalisé sans référence catalogue
+      prefilled[item.productId] = item.quantity;
+      if (item.product) productsFromList[item.productId] = item.product;
+    }
+    setSelected(prefilled);
+    if (Object.keys(productsFromList).length > 0) {
+      setKnownProducts((prev) => ({ ...prev, ...productsFromList }));
+    }
+  }, [existing.data]);
+
   const selectedEntries = Object.entries(selected).filter(([, qty]) => qty > 0);
-  const productById = useMemo(
-    () => new Map(activeProducts.map((p) => [p.id, p])),
-    [activeProducts],
-  );
+  const customItemsCount = (existing.data?.items ?? []).filter((i) => !i.productId).length;
   const estimatedTotal = selectedEntries.reduce((sum, [id, qty]) => {
-    const price = Number(productById.get(id)?.price ?? 0);
+    const price = Number(knownProducts[id]?.price ?? 0);
     return sum + price * qty;
   }, 0);
 
@@ -149,8 +190,15 @@ export function AdminOfficialListsPage() {
               <Spinner label="Chargement de la liste existante…" />
             ) : existing.data && existing.data.items.length > 0 ? (
               <Alert kind="info">
-                Une liste officielle existe déjà ({existing.data.items.length} article(s)).
-                L'enregistrement la remplacera intégralement.
+                Une liste officielle existe déjà ({existing.data.items.length} article(s)) — elle a
+                été chargée ci-dessous, vous pouvez la modifier puis l'enregistrer pour la remplacer.
+                {customItemsCount > 0 && (
+                  <>
+                    {' '}
+                    ({customItemsCount} article(s) personnalisé(s) sans référence catalogue ne sont
+                    pas repris automatiquement.)
+                  </>
+                )}
               </Alert>
             ) : (
               <Alert kind="info">Aucune liste officielle pour ce couple école / niveau.</Alert>
@@ -208,6 +256,10 @@ export function AdminOfficialListsPage() {
                 );
               })}
             </ul>
+          )}
+
+          {products.data && products.data.meta.totalPages > 1 && (
+            <Pagination meta={products.data.meta} onPageChange={setPage} />
           )}
 
           <div className="mt-6 flex flex-col gap-3 border-t border-brand-100 pt-4 sm:flex-row sm:items-center sm:justify-between">

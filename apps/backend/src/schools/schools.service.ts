@@ -18,7 +18,27 @@ export class SchoolsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
-  ) {}
+  ) { }
+
+  /**
+ * Retourne la liste des villes ayant au moins une école active.
+ */
+  async findCities() {
+    const cities = await this.prisma.school.findMany({
+      where: {
+        isActive: true,
+      },
+      distinct: ['city'],
+      select: {
+        city: true,
+      },
+      orderBy: {
+        city: 'asc',
+      },
+    });
+
+    return cities.map((c) => c.city);
+  }
 
   /**
    * Public search used by the visitor landing page ("choisir une école").
@@ -30,16 +50,38 @@ export class SchoolsService {
     const { skip, take } = paginationParams(query.page, query.limit, PUBLIC_SEARCH_DEFAULT_LIMIT);
     const where: Prisma.SchoolWhereInput = {
       isActive: true,
-      ...(query.search
-        ? {
-            OR: [
-              { name: containsInsensitive(query.search) },
-              { city: containsInsensitive(query.search) },
-            ],
-          }
-        : {}),
     };
-    return this.prisma.school.findMany({ where, orderBy: { name: 'asc' }, skip, take });
+
+    // Filtre par ville
+    if (query.city) {
+      where.city = query.city;
+    }
+
+    // Recherche uniquement dans le nom de l'école
+    if (query.search) {
+      where.name = containsInsensitive(query.search);
+    }
+    return this.prisma.school.findMany({
+      where,
+      orderBy: {
+        name: 'asc',
+      },
+      skip,
+      take,
+
+      include: {
+        schoolLists: {
+          select: {
+            grade: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   /**
@@ -51,11 +93,11 @@ export class SchoolsService {
     const { skip, take, page, limit } = paginationParams(query.page, query.limit, ADMIN_LIST_DEFAULT_LIMIT);
     const where: Prisma.SchoolWhereInput = query.search
       ? {
-          OR: [
-            { name: containsInsensitive(query.search) },
-            { city: containsInsensitive(query.search) },
-          ],
-        }
+        OR: [
+          { name: containsInsensitive(query.search) },
+          { city: containsInsensitive(query.search) },
+        ],
+      }
       : {};
     const [data, total] = await Promise.all([
       this.prisma.school.findMany({ where, orderBy: { name: 'asc' }, skip, take }),
@@ -101,5 +143,44 @@ export class SchoolsService {
   async deactivate(id: string) {
     await this.findOne(id);
     return this.prisma.school.update({ where: { id }, data: { isActive: false } });
+  }
+  async findGrades(id: string) {
+    return this.prisma.grade.findMany({
+      where: {
+        schoolGrades: {
+          some: {
+            schoolId: id,
+          },
+        },
+      },
+      orderBy: {
+        order: 'asc',
+      },
+    });
+  }
+  async setGrades(id: string, gradeIds: string[]) {
+    await this.findOne(id);
+
+    await this.prisma.$transaction(async (tx) => {
+      // Supprime les anciennes associations
+      await tx.schoolGrade.deleteMany({
+        where: {
+          schoolId: id,
+        },
+      });
+
+      // Crée les nouvelles
+      if (gradeIds.length > 0) {
+        await tx.schoolGrade.createMany({
+          data: gradeIds.map((gradeId) => ({
+            schoolId: id,
+            gradeId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    });
+
+    return this.findGrades(id);
   }
 }

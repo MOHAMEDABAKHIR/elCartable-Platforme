@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { api, apiErrorMessage } from '../../lib/api';
@@ -6,6 +6,7 @@ import { fetchSchoolsAdmin, uploadSchoolLogo } from '../../lib/queries';
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Spinner } from '../../components/ui';
 import { ImageUploadButton } from '../../components/ImageUploadButton';
 import { Pagination } from '../../components/Pagination';
+import { MOROCCO_CITIES } from '../../lib/moroccoCities';
 
 interface SchoolForm {
   name: string;
@@ -23,6 +24,13 @@ export function AdminSchoolsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [citySearch, setCitySearch] = useState('');
+  const [showCities, setShowCities] = useState(false);
+
+
+  const filteredCities = MOROCCO_CITIES.filter((city) =>
+    city.toLowerCase().includes(citySearch.toLowerCase())
+  ).slice(0, 8);
 
   // Debounce la recherche pour ne pas déclencher un appel API à chaque frappe,
   // et revenir en page 1 dès que le filtre change.
@@ -66,7 +74,24 @@ export function AdminSchoolsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['schools'] }),
     onError: (err) => setError(apiErrorMessage(err)),
   });
+  const cityRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
 
+    function handleClick(e: MouseEvent) {
+      if (
+        cityRef.current &&
+        !cityRef.current.contains(e.target as Node)
+      ) {
+        setShowCities(false);
+      }
+    }
+
+    window.addEventListener('click', handleClick);
+
+    return () =>
+      window.removeEventListener('click', handleClick);
+
+  }, []);
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-extrabold text-brand-900">Écoles</h1>
@@ -85,7 +110,79 @@ export function AdminSchoolsPage() {
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           </Field>
           <Field label="Ville">
-            <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+            <div ref={cityRef} className="relative">
+
+              <Input
+                value={citySearch}
+                placeholder="Rechercher une ville..."
+                onFocus={() => setShowCities(true)}
+                onChange={(e) => {
+                  // On ne met à jour QUE le texte de recherche ici.
+                  // form.city reste vide tant qu'aucune ville n'a été
+                  // sélectionnée dans la liste : on évite qu'une valeur
+                  // libre (non validée) soit envoyée à l'API.
+                  setCitySearch(e.target.value);
+                  if (form.city) {
+                    setForm({ ...form, city: '' });
+                  }
+                }}
+                onBlur={() => {
+                  // Si le texte tapé ne correspond à aucune ville valide,
+                  // on nettoie le champ.
+                  if (!MOROCCO_CITIES.includes(citySearch)) {
+                    setCitySearch('');
+                  }
+                }}
+              />
+
+              {showCities && filteredCities.length > 0 && (
+                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-white shadow-lg">
+                  {filteredCities.map((city) => (
+                    <button
+                      key={city}
+                      type="button"
+                      // onMouseDown au lieu de onClick : se déclenche AVANT
+                      // le onBlur de l'input, donc le clic n'est pas annulé
+                      // par le nettoyage du blur.
+                      onMouseDown={() => {
+                        setForm({ ...form, city });
+                        setCitySearch(city);
+                        setShowCities(false);
+                      }}
+                      className="block w-full px-3 py-2 text-left hover:bg-brand-50"
+                    >
+                      {city}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {showCities && filteredCities.length > 0 && (
+                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-white shadow-lg">
+
+                  {filteredCities.map((city) => (
+                    <button
+                      key={city}
+                      type="button"
+                      className="block w-full px-3 py-2 text-left hover:bg-brand-50"
+                      onClick={() => {
+                        setForm({
+                          ...form,
+                          city,
+                        });
+
+                        setCitySearch(city);
+                        setShowCities(false);
+                      }}
+                    >
+                      {city}
+                    </button>
+                  ))}
+
+                </div>
+              )}
+
+            </div>
           </Field>
           <Field label="Adresse">
             <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
