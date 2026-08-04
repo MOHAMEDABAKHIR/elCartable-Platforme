@@ -28,7 +28,7 @@ export function AdminSchoolsPage() {
   const [showCities, setShowCities] = useState(false);
 
 
-  const filteredCities = MOROCCO_CITIES.filter((city) =>
+  const filteredCities: string[] = MOROCCO_CITIES.filter((city) =>
     city.toLowerCase().includes(citySearch.toLowerCase())
   ).slice(0, 8);
 

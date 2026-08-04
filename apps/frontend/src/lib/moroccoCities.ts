@@ -1,4 +1,4 @@
-export const MOROCCO_CITIES= [
+export const MOROCCO_CITIES: string[]= [
   "Afourar",
   "Agadir",
   "Aghbala",
