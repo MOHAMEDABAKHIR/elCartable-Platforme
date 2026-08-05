@@ -4,6 +4,7 @@ import { Building2, MapPin, ArrowRight } from 'lucide-react';
 
 import { fetchSchools } from '../lib/queries';
 import { Button } from '../components/ui';
+import { track } from '../lib/analytics';
 
 export function SchoolsByCityPage() {
   const navigate = useNavigate();
@@ -117,9 +118,16 @@ export function SchoolsByCityPage() {
 
             <Button
               className="mt-6 w-full"
-              onClick={() =>
-                navigate(`/ecoles/${school.id}`)
-              }
+              onClick={() => {
+                track('CLICK', {
+                  action: 'select_school',
+                  city,
+                  schoolId: school.id,
+                  schoolName: school.name,
+                });
+
+                navigate(`/ecoles/${school.id}`);
+              }}
             >
 
               Voir les niveaux

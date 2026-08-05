@@ -6,6 +6,7 @@ import { AuthProvider } from './store/auth';
 import { CartProvider } from './store/cart';
 import { App } from './App';
 import './index.css';
+import { initAnalytics } from './lib/analytics';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,6 +16,8 @@ const queryClient = new QueryClient({
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Élément racine #root introuvable.');
+
+initAnalytics().catch(console.error);
 
 createRoot(container).render(
   <StrictMode>

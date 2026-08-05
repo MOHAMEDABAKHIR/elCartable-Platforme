@@ -166,21 +166,56 @@ export interface CreateOrderPayload {
 }
 
 export interface DashboardOverview {
-  orders: {
-    totalOrders: number;
-    byStatus: Record<string, number>;
-    totalRevenue: number | string;
-    averageCartValue: number | string;
-    nonCancelledOrders: number;
-  };
-  visitors: {
-    sessionsCount: number;
-    newVisitorsCount: number;
-    addToCartSessions: number;
-    convertedSessions: number;
-    abandonmentRate: number;
-    averageTimeToConversionSeconds: number | null;
-  };
+
+    orders:{
+
+        totalOrders:number;
+
+        totalRevenue:number;
+
+        averageCartValue:number;
+
+        byStatus:Record<string,number>;
+    };
+
+    visitors:{
+
+        sessionsCount:number;
+
+        convertedSessions:number;
+
+        newVisitorsCount:number;
+    };
+
+    revenueHistory:{
+        date:string;
+        revenue:number;
+        orders:number;
+    }[];
+
+    topSchools:{
+        schoolId:string;
+        schoolName:string;
+        orders:number;
+        revenue:number;
+    }[];
+
+    topProducts:{
+        productId:string;
+        name:string;
+        quantity:number;
+        revenue:number;
+    }[];
+
+    latestOrders:{
+        id:string;
+        orderNumber:string;
+        customerName:string;
+        status:string;
+        total:number;
+        createdAt:string;
+    }[];
+
 }
 
 export interface Paginated<T> {

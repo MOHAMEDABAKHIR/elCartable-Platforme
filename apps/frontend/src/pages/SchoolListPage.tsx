@@ -7,6 +7,7 @@ import { useCart } from '../store/cart';
 import { formatMAD } from '../lib/format';
 import { Alert, Button, Card, Field, Input, Select, Spinner, Textarea } from '../components/ui';
 import type { SchoolListSource } from '../lib/types';
+import { track } from '../lib/analytics';
 
 function OfficialList({ schoolId, gradeId }: { schoolId: string; gradeId: string }) {
   const navigate = useNavigate();
@@ -42,6 +43,12 @@ function OfficialList({ schoolId, gradeId }: { schoolId: string; gradeId: string
   );
 
   const addAll = () => {
+    track('ADD_TO_CART', {
+      schoolId,
+      gradeId,
+      items: items.length,
+      total,
+    });
     addMany(
       items.map((i) => ({
         productId: i.productId ?? undefined,

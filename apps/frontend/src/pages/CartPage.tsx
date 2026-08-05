@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../store/cart';
 import { formatMAD } from '../lib/format';
 import { Button, Card, EmptyState } from '../components/ui';
+import { track } from '../lib/analytics';
 
 export function CartPage() {
   const navigate = useNavigate();
@@ -23,7 +24,14 @@ export function CartPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-brand-900">Mon panier</h1>
-        <button onClick={clear} className="text-sm font-semibold text-red-600 hover:underline">
+        <button onClick={() => {
+          track('CART_ABANDON', {
+            items: items.length,
+            total: totalAmount,
+          });
+
+          clear();
+        }} className="text-sm font-semibold text-red-600 hover:underline">
           Vider le panier
         </button>
       </div>
@@ -39,14 +47,32 @@ export function CartPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => updateQuantity(index, item.quantity - 1)}
+                    onClick={() => {
+                      updateQuantity(index, item.quantity - 1);
+
+                      track('CLICK', {
+                        action: 'decrease_quantity',
+                        productId: item.productId,
+                        productName: item.label,
+                        quantity: item.quantity - 1,
+                      });
+                    }}
                     className="h-8 w-8 rounded-lg border border-brand-200 text-brand-700 hover:bg-brand-50"
                   >
                     −
                   </button>
                   <span className="w-8 text-center font-semibold">{item.quantity}</span>
                   <button
-                    onClick={() => updateQuantity(index, item.quantity + 1)}
+                    onClick={() => {
+                      updateQuantity(index, item.quantity + 1);
+
+                      track('CLICK', {
+                        action: 'increase_quantity',
+                        productId: item.productId,
+                        productName: item.label,
+                        quantity: item.quantity + 1,
+                      });
+                    }}
                     className="h-8 w-8 rounded-lg border border-brand-200 text-brand-700 hover:bg-brand-50"
                   >
                     +
@@ -56,7 +82,15 @@ export function CartPage() {
                   {formatMAD(item.unitPrice * item.quantity)}
                 </span>
                 <button
-                  onClick={() => removeItem(index)}
+                  onClick={() => {
+                    track('CLICK', {
+                      action: 'remove_from_cart',
+                      productId: item.productId,
+                      productName: item.label,
+                    });
+
+                    removeItem(index);
+                  }}
                   className="text-sm text-red-500 hover:underline"
                   aria-label="Retirer"
                 >
@@ -81,7 +115,15 @@ export function CartPage() {
             <span>Total</span>
             <span>{formatMAD(totalAmount)}</span>
           </div>
-          <Button variant="accent" className="mt-6 w-full" onClick={() => navigate('/commande')}>
+          <Button variant="accent" className="mt-6 w-full" onClick={() => {
+            track('CLICK', {
+              action: 'begin_checkout',
+              items: items.length,
+              total: totalAmount,
+            });
+
+            navigate('/commande');
+          }}>
             Commander
           </Button>
           <p className="mt-3 text-center text-xs text-brand-500">Paiement à la livraison</p>

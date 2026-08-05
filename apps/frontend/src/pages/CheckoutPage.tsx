@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import { createOrder, fetchGrades, fetchSchools } from '../lib/queries';
 import { apiErrorMessage } from '../lib/api';
 import { formatMAD } from '../lib/format';
 import { Alert, Button, Card, Field, Input, Select, Textarea } from '../components/ui';
+import { track } from '../lib/analytics';
 
 interface CheckoutForm {
   customerName: string;
@@ -19,6 +20,13 @@ interface CheckoutForm {
 export function CheckoutPage() {
   const navigate = useNavigate();
   const { items, totalAmount, context } = useCart();
+  useEffect(() => {
+    track('CLICK', {
+      action: 'checkout_page_view',
+      items: items.length,
+      total: totalAmount,
+    });
+  }, []);
   const [error, setError] = useState('');
   const [schoolId, setSchoolId] = useState(context.schoolId ?? '');
   const [gradeId, setGradeId] = useState(context.gradeId ?? '');
@@ -34,6 +42,13 @@ export function CheckoutPage() {
 
   const onSubmit = async (values: CheckoutForm) => {
     setError('');
+    track('CLICK', {
+      action: 'submit_order',
+      items: items.length,
+      total: totalAmount,
+      schoolId,
+      gradeId,
+    });
     try {
       const order = await createOrder({
         customerName: values.customerName,
@@ -50,8 +65,27 @@ export function CheckoutPage() {
           unitPrice: i.productId ? undefined : i.unitPrice,
         })),
       });
+      track('CONVERSION', {
+        action: 'order_completed',
+        orderId: order.id,
+        orderValue: totalAmount,
+        items: items.length,
+        schoolId,
+        gradeId,
+      });
+
       navigate('/commande/confirmee', { state: { order } });
     } catch (err) {
+
+      track('CLICK', {
+        action: 'order_failed',
+        items: items.length,
+        total: totalAmount,
+        schoolId,
+        gradeId,
+        error: apiErrorMessage(err),
+      });
+
       setError(apiErrorMessage(err));
     }
   };
@@ -71,7 +105,11 @@ export function CheckoutPage() {
                   {...register('customerPhone', {
                     required: 'Téléphone requis',
                     minLength: { value: 9, message: 'Numéro invalide' },
-                  })}
+                  })} onBlur={() => {
+                    track('CLICK', {
+                      action: 'phone_entered',
+                    });
+                  }}
                   placeholder="0612345678"
                 />
               </Field>
@@ -81,7 +119,24 @@ export function CheckoutPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="École">
-                <Select value={schoolId} onChange={(e) => setSchoolId(e.target.value)}>
+                <Select
+                  value={schoolId}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    setSchoolId(value);
+
+                    const school = schools.data?.find(
+                      (s) => String(s.id) === value
+                    );
+
+                    track('CLICK', {
+                      action: 'select_school',
+                      schoolId: value,
+                      schoolName: school?.name,
+                    });
+                  }}
+                >
                   <option value="">Sélectionnez votre école</option>
                   {schools.data?.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -91,7 +146,24 @@ export function CheckoutPage() {
                 </Select>
               </Field>
               <Field label="Niveau">
-                <Select value={gradeId} onChange={(e) => setGradeId(e.target.value)}>
+                <Select
+                  value={gradeId}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    setGradeId(value);
+
+                    const grade = grades.data?.find(
+                      (g) => String(g.id) === value
+                    );
+
+                    track('CLICK', {
+                      action: 'select_grade',
+                      gradeId: value,
+                      gradeName: grade?.name,
+                    });
+                  }}
+                >
                   <option value="">Sélectionnez le niveau</option>
                   {grades.data?.map((g) => (
                     <option key={g.id} value={g.id}>
