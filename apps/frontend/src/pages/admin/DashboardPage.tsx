@@ -3,6 +3,7 @@ import { fetchDashboard } from '../../lib/queries';
 import { ORDER_STATUS_LABELS, formatMAD, orderStatusColor } from '../../lib/format';
 import { Alert, Badge, Card, Spinner } from '../../components/ui';
 import type { OrderStatus } from '../../lib/types';
+import { DashboardOverview } from '../../components/dashboard';
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (

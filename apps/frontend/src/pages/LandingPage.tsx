@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchCities, fetchSchools, fetchProducts } from '../lib/queries';
+import { fetchSchools, fetchProducts } from '../lib/queries';
 import { Button } from '../components/ui';
 import { SearchableSelect } from '../components/SearchableSelect';
 import InfiniteimagescrollSchool from '../components/InfiniteimagescrollSchool';
@@ -9,6 +9,7 @@ import InfiniteimagescrollSupplies from '../components/InfiniteimagescrollSuppli
 import CtaButtons from '../components/CTA';
 import { Building2 } from 'lucide-react';
 import { MOROCCO_CITIES } from '../lib/moroccoCities';
+import { track } from '../lib/analytics';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -36,9 +37,15 @@ export function LandingPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (city) {
-      navigate(`/villes/${encodeURIComponent(city)}`);
-    }
+
+    if (!city) return;
+
+    track('CLICK', {
+      action: 'view_city_schools',
+      city,
+    });
+
+    navigate(`/villes/${encodeURIComponent(city)}`);
   };
 
   return (
@@ -76,7 +83,14 @@ export function LandingPage() {
             <SearchableSelect
               className="md:flex-1"
               value={city}
-              onChange={setCity}
+              onChange={(selectedCity) => {
+                setCity(selectedCity);
+
+                track('CLICK', {
+                  action: 'select_city',
+                  city: selectedCity,
+                });
+              }}
               options={MOROCCO_CITIES.map((city) => ({
                 id: city,
                 label: city,

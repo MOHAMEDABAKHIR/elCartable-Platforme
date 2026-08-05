@@ -4,14 +4,39 @@ import { Button, Card } from '../components/ui';
 import { useCart } from '../store/cart';
 import { formatMAD } from '../lib/format';
 import type { Order } from '../lib/types';
+import { track } from '../lib/analytics';
 
 export function OrderConfirmationPage() {
+
   const { state } = useLocation() as { state?: { order?: Order } };
   const order = state?.order;
+  useEffect(() => {
+    if (!order) {
+      track('CLICK', {
+        action: 'confirmation_without_order',
+      });
+    }
+  }, [order]);
+
+  track('CLICK', {
+    action: 'go_to_order_tracking',
+    orderId: order?.id,
+    orderNumber: order?.orderNumber,
+  });
+
   const { clear } = useCart();
 
   useEffect(() => {
-    if (order) clear();
+    if (!order) return;
+
+    track('CONVERSION', {
+      action: 'order_confirmation_view',
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      orderValue: order.totalAmount,
+    });
+
+    clear();
   }, [order, clear]);
 
   return (
@@ -42,10 +67,27 @@ export function OrderConfirmationPage() {
         )}
 
         <div className="mt-6 flex justify-center gap-3">
-          <Link to="/suivi">
+          <Link
+            to="/suivi"
+            onClick={() =>
+              track('CLICK', {
+                action: 'go_to_order_tracking',
+                orderId: order?.id,
+                orderNumber: order?.orderNumber,
+              })
+            }
+          >
             <Button variant="accent">Suivre ma commande</Button>
           </Link>
-          <Link to="/catalogue">
+          <Link
+            to="/catalogue"
+            onClick={() =>
+              track('CLICK', {
+                action: 'continue_shopping',
+                orderId: order?.id,
+              })
+            }
+          >
             <Button variant="outline">Continuer mes achats</Button>
           </Link>
         </div>
