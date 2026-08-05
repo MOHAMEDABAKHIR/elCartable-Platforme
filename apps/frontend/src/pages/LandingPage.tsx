@@ -8,6 +8,7 @@ import InfiniteimagescrollSchool from '../components/InfiniteimagescrollSchool';
 import InfiniteimagescrollSupplies from '../components/InfiniteimagescrollSupplies';
 import CtaButtons from '../components/CTA';
 import { Building2 } from 'lucide-react';
+import { MOROCCO_CITIES } from '../lib/moroccoCities';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -21,11 +22,6 @@ export function LandingPage() {
       fetchSchools({
         limit: CAROUSEL_LIMIT,
       }),
-  });
-  // Dropdown "choisissez une école" : recherche plafonnée côté serveur (20 résultats).
-  const cities = useQuery({
-    queryKey: ['cities'],
-    queryFn: fetchCities,
   });
   const products = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts() });
 
@@ -81,7 +77,7 @@ export function LandingPage() {
               className="md:flex-1"
               value={city}
               onChange={setCity}
-              options={(cities.data ?? []).map((city) => ({
+              options={MOROCCO_CITIES.map((city) => ({
                 id: city,
                 label: city,
               }))}
