@@ -21,77 +21,81 @@ import { AdminCatalogRefsPage } from './pages/admin/AdminCatalogRefsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { SchoolsByCityPage } from './pages/SchoolsByCityPage';
 import { SchoolPage } from './pages/SchoolPage';
+import { ScrollToTop } from './components/ScrollToTop';
 export function App() {
   return (
-    <Routes>
-      <Route element={<PublicLayout />}>
-        <Route index element={<LandingPage />} />
-        <Route path="catalogue" element={<CatalogPage />} />
-        <Route path="listes" element={<SchoolListPage />} />
-        <Route path="panier" element={<CartPage />} />
-        <Route path="commande" element={<CheckoutPage />} />
-        <Route path="commande/confirmee" element={<OrderConfirmationPage />} />
-        <Route path="suivi" element={<TrackPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-        <Route path="/villes/:city" element={<SchoolsByCityPage />}/>
-        <Route path="/ecoles/:schoolId" element={<SchoolPage />} />
-      </Route>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route element={<PublicLayout />}>
+          <Route index element={<LandingPage />} />
+          <Route path="catalogue" element={<CatalogPage />} />
+          <Route path="listes" element={<SchoolListPage />} />
+          <Route path="panier" element={<CartPage />} />
+          <Route path="commande" element={<CheckoutPage />} />
+          <Route path="commande/confirmee" element={<OrderConfirmationPage />} />
+          <Route path="suivi" element={<TrackPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+          <Route path="/villes/:city" element={<SchoolsByCityPage />} />
+          <Route path="/ecoles/:schoolId" element={<SchoolPage />} />
+        </Route>
 
-      <Route path="/connexion" element={<LoginPage />} />
-      <Route path="/activer-compte" element={<ActivateInvitationPage />} />
+        <Route path="/connexion" element={<LoginPage />} />
+        <Route path="/activer-compte" element={<ActivateInvitationPage />} />
 
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute>
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<DashboardPage />} />
-        <Route path="commandes" element={<OrdersPage />} />
-        <Route path="commandes/:id" element={<OrderDetailPage />} />
         <Route
-          path="produits"
+          path="/admin"
           element={
-            <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
-              <AdminProductsPage />
+            <ProtectedRoute>
+              <AdminLayout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="ecoles"
-          element={
-            <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
-              <AdminSchoolsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="listes-officielles"
-          element={
-            <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
-              <AdminOfficialListsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="catalogue-refs"
-          element={
-            <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
-              <AdminCatalogRefsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="utilisateurs"
-          element={
-            <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
-              <AdminUsersPage />
-            </ProtectedRoute>
-          }
-        />
-      </Route>
-    </Routes>
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="commandes" element={<OrdersPage />} />
+          <Route path="commandes/:id" element={<OrderDetailPage />} />
+          <Route
+            path="produits"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminProductsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="ecoles"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminSchoolsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="listes-officielles"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminOfficialListsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="catalogue-refs"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminCatalogRefsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="utilisateurs"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminUsersPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+      </Routes>
+    </>
   );
 }
