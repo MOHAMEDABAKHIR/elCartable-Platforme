@@ -89,6 +89,7 @@ model SchoolList {
   items     SchoolListItem[]
   grade     Grade?           @relation(fields: [gradeId], references: [id])
   school    School?          @relation(fields: [schoolId], references: [id])
+  orders    Order[]          // ← ajouté
 
   @@index([schoolId, gradeId])
   @@map("school_lists")
@@ -152,6 +153,7 @@ model Order {
   deliveryAddress String?
   schoolId        String?
   gradeId         String?
+  schoolListId    String?        // ← ajouté : lien vers la liste custom soumise
   status          OrderStatus    @default(CREATED)
   note            String?
   totalAmount     Decimal        @default(0) @db.Decimal(10, 2)
@@ -165,6 +167,7 @@ model Order {
   commercial      User?          @relation("OrderCommercial", fields: [commercialId], references: [id])
   grade           Grade?         @relation(fields: [gradeId], references: [id])
   school          School?        @relation(fields: [schoolId], references: [id])
+  schoolList      SchoolList?    @relation(fields: [schoolListId], references: [id])  // ← ajouté
 
   @@index([status])
   @@index([commercialId])
@@ -200,26 +203,40 @@ model OrderHistory {
 }
 
 model Visitor {
-  id        String           @id @default(uuid())
-  anonId    String           @unique
-  userAgent String?
-  ipHash    String?
-  firstSeen DateTime         @default(now())
-  lastSeen  DateTime         @updatedAt
-  sessions  VisitorSession[]
+  id            String           @id @default(uuid())
+  anonId        String           @unique
+  userAgent     String?
+  ipHash        String?
+  firstSeen     DateTime         @default(now())
+  lastSeen      DateTime         @updatedAt
+  sessions      VisitorSession[]
+  device        String?
+  browser       String?
+  os            String?
+  country       String?
+  city          String?
+  sessionsCount Int              @default(0)
 
   @@map("visitors")
 }
 
 model VisitorSession {
-  id        String           @id @default(uuid())
-  visitorId String
-  startedAt DateTime         @default(now())
-  endedAt   DateTime?
-  entryPage String?
-  exitPage  String?
-  events    AnalyticsEvent[]
-  visitor   Visitor          @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  id              String           @id @default(uuid())
+  visitorId       String
+  startedAt       DateTime         @default(now())
+  endedAt         DateTime?
+  entryPage       String?
+  exitPage        String?
+  events          AnalyticsEvent[]
+  visitor         Visitor          @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  referrer        String?
+  durationSeconds Int?
+  converted       Boolean          @default(false)
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  utmContent      String?
+  utmTerm         String?
 
   @@map("visitor_sessions")
 }
@@ -230,6 +247,7 @@ model AnalyticsEvent {
   type      AnalyticsEventType
   path      String?
   metadata  Json?
+  pageTitle String?
   createdAt DateTime           @default(now())
   session   VisitorSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
@@ -367,4 +385,7 @@ enum AnalyticsEventType {
   ADD_TO_CART
   CART_ABANDON
   CONVERSION
+  SEARCH
+  CHECKOUT_STARTED
+  ORDER_CREATED
 }

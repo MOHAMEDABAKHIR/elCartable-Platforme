@@ -14,18 +14,39 @@ import { buildDateRangeFilter } from '../common/prisma/query.utils';
  */
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getOverview(query: DashboardQueryDto) {
-    const period = buildDateRangeFilter(query.from, query.to);
+  const period = buildDateRangeFilter(query.from, query.to);
 
-    const [orders, visitors] = await Promise.all([
-      this.getOrderMetrics(period),
-      this.getVisitorMetrics(period),
-    ]);
+ const [orders, visitors, revenueHistory,topProducts,topSchools ,latestOrders ,topCities , topGrades,lowStockProducts,activities,] = await Promise.all([
+  this.getOrderMetrics(period),
+  this.getVisitorMetrics(period),
+  this.getRevenueHistory(period),
+  this.getTopProducts(period),
+  this.getTopSchools(period),
+  this.getLatestOrders(period),
+  this.getTopCities(period),
+  this.getTopGrades(period),
+  this.getLowStockProducts(),
+  this.getActivities(),
+  
+]);
 
-    return { period: query, orders, visitors };
-  }
+  return {
+  period: query,
+  orders,
+  visitors,
+  revenueHistory,
+  topProducts,
+  topSchools,
+  latestOrders,
+  topCities,
+  topGrades,
+  lowStockProducts,
+  activities,
+};
+}
 
   // ---------------------------------------------------------------------
 
@@ -140,4 +161,349 @@ export class DashboardService {
 
     return count > 0 ? totalSeconds / count : null;
   }
+  private async getRevenueHistory(
+  createdAt: Prisma.DateTimeFilter | undefined,
+) {
+  const where: Prisma.OrderWhereInput = {
+    ...(createdAt ? { createdAt } : {}),
+    status: {
+      not: OrderStatus.CANCELLED,
+    },
+  };
+
+  const orders = await this.prisma.order.findMany({
+    where,
+    select: {
+      createdAt: true,
+      totalAmount: true,
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+
+  const map = new Map<
+    string,
+    {
+      date: string;
+      revenue: number;
+      orders: number;
+    }
+  >();
+
+  for (const order of orders) {
+    const date = order.createdAt.toISOString().slice(0, 10);
+
+    if (!map.has(date)) {
+      map.set(date, {
+        date,
+        revenue: 0,
+        orders: 0,
+      });
+    }
+
+    const current = map.get(date)!;
+
+    current.revenue += Number(order.totalAmount);
+    current.orders += 1;
+  }
+
+  return [...map.values()];
+}
+private async getTopProducts(
+  createdAt: Prisma.DateTimeFilter | undefined,
+) {
+  const where: Prisma.OrderWhereInput = {
+    ...(createdAt ? { createdAt } : {}),
+    status: {
+      not: OrderStatus.CANCELLED,
+    },
+  };
+
+  const items = await this.prisma.orderItem.findMany({
+    where: {
+      order: where,
+    },
+    select: {
+      productId: true,
+      label: true,
+      quantity: true,
+      unitPrice: true,
+    },
+  });
+
+  const map = new Map<
+    string,
+    {
+      productId: string;
+      name: string;
+      quantity: number;
+      revenue: number;
+    }
+  >();
+
+  for (const item of items) {
+    const key = item.productId ?? item.label;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        productId: item.productId ?? '',
+        name: item.label,
+        quantity: 0,
+        revenue: 0,
+      });
+    }
+
+    const current = map.get(key)!;
+
+    current.quantity += item.quantity;
+    current.revenue += Number(item.unitPrice) * item.quantity;
+  }
+
+  return [...map.values()]
+    .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, 10);
+}
+private async getTopSchools(
+  createdAt: Prisma.DateTimeFilter | undefined,
+) {
+  const where: Prisma.OrderWhereInput = {
+    ...(createdAt ? { createdAt } : {}),
+    status: {
+      not: OrderStatus.CANCELLED,
+    },
+  };
+
+  const orders = await this.prisma.order.findMany({
+    where,
+    select: {
+      totalAmount: true,
+      schoolId: true,
+      school: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  const map = new Map<
+    string,
+    {
+      schoolId: string;
+      schoolName: string;
+      orders: number;
+      revenue: number;
+    }
+  >();
+
+  for (const order of orders) {
+    const key = order.schoolId ?? 'unknown';
+
+    if (!map.has(key)) {
+      map.set(key, {
+        schoolId: order.schoolId ?? '',
+        schoolName: order.school?.name ?? 'École inconnue',
+        orders: 0,
+        revenue: 0,
+      });
+    }
+
+    const current = map.get(key)!;
+
+    current.orders += 1;
+    current.revenue += Number(order.totalAmount);
+  }
+
+  return [...map.values()]
+    .sort((a, b) => b.orders - a.orders)
+    .slice(0, 10);
+}
+private async getLatestOrders(
+  createdAt: Prisma.DateTimeFilter | undefined,
+) {
+  const where: Prisma.OrderWhereInput = createdAt
+    ? { createdAt }
+    : {};
+
+  const orders = await this.prisma.order.findMany({
+    where,
+    take: 10,
+    orderBy: {
+      createdAt: 'desc',
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      customerName: true,
+      status: true,
+      totalAmount: true,
+      createdAt: true,
+    },
+  });
+
+  return orders.map((order) => ({
+    id: order.id,
+    orderNumber: order.orderNumber,
+    customerName: order.customerName,
+    status: order.status,
+    total: Number(order.totalAmount),
+    createdAt: order.createdAt,
+  }));
+}
+private async getTopCities(
+  createdAt: Prisma.DateTimeFilter | undefined,
+) {
+  const where: Prisma.OrderWhereInput = {
+    ...(createdAt ? { createdAt } : {}),
+    status: {
+      not: OrderStatus.CANCELLED,
+    },
+  };
+
+  const orders = await this.prisma.order.findMany({
+    where,
+    select: {
+      totalAmount: true,
+      school: {
+        select: {
+          city: true,
+        },
+      },
+    },
+  });
+
+  const map = new Map<
+    string,
+    {
+      city: string;
+      orders: number;
+      revenue: number;
+    }
+  >();
+
+  for (const order of orders) {
+    const city = order.school?.city ?? 'Inconnue';
+
+    if (!map.has(city)) {
+      map.set(city, {
+        city,
+        orders: 0,
+        revenue: 0,
+      });
+    }
+
+    const current = map.get(city)!;
+
+    current.orders += 1;
+    current.revenue += Number(order.totalAmount);
+  }
+
+  return [...map.values()]
+    .sort((a, b) => b.orders - a.orders)
+    .slice(0, 10);
+}
+private async getTopGrades(
+  createdAt: Prisma.DateTimeFilter | undefined,
+) {
+  const where: Prisma.OrderWhereInput = {
+    ...(createdAt ? { createdAt } : {}),
+    status: {
+      not: OrderStatus.CANCELLED,
+    },
+  };
+
+  const orders = await this.prisma.order.findMany({
+    where,
+    select: {
+      totalAmount: true,
+      gradeId: true,
+      grade: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  const map = new Map<
+    string,
+    {
+      gradeId: string;
+      gradeName: string;
+      orders: number;
+      revenue: number;
+    }
+  >();
+
+  for (const order of orders) {
+    const key = order.gradeId ?? 'unknown';
+
+    if (!map.has(key)) {
+      map.set(key, {
+        gradeId: order.gradeId ?? '',
+        gradeName: order.grade?.name ?? 'Niveau inconnu',
+        orders: 0,
+        revenue: 0,
+      });
+    }
+
+    const current = map.get(key)!;
+
+    current.orders += 1;
+    current.revenue += Number(order.totalAmount);
+  }
+
+  return [...map.values()]
+    .sort((a, b) => b.orders - a.orders)
+    .slice(0, 10);
+}
+private async getLowStockProducts() {
+  return this.prisma.product.findMany({
+    where: {
+      isActive: true,
+      stock: {
+        lte: 10,
+      },
+    },
+    orderBy: {
+      stock: 'asc',
+    },
+    take: 10,
+    select: {
+      id: true,
+      name: true,
+      stock: true,
+      price: true,
+    },
+  });
+}
+private async getActivities() {
+  const history = await this.prisma.orderHistory.findMany({
+    take: 15,
+    orderBy: {
+      createdAt: 'desc',
+    },
+    include: {
+      user: {
+        select: {
+          fullName: true,
+        },
+      },
+      order: {
+        select: {
+          orderNumber: true,
+        },
+      },
+    },
+  });
+
+  return history.map((item) => ({
+    id: item.id,
+    action: item.action,
+    orderNumber: item.order.orderNumber,
+    user: item.user?.fullName ?? 'Système',
+    createdAt: item.createdAt,
+  }));
+}
 }

@@ -58,6 +58,7 @@ export function CheckoutPage() {
         note: values.note || undefined,
         schoolId: schoolId || undefined,
         gradeId: gradeId || undefined,
+        schoolListId: context.schoolListId || undefined,
         items: items.map((i) => ({
           productId: i.productId,
           label: i.label,

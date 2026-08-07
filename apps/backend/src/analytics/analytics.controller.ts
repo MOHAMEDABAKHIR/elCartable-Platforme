@@ -7,11 +7,18 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { AnalyticsService } from './analytics.service';
 import { CreateAnalyticsEventDto } from './dto/create-analytics-event.dto';
 import { SearchAnalyticsEventDto } from './dto/search-analytics-event.dto';
+import { CreateSessionDto } from './dto/create-session.dto';
 
 @ApiTags('Analytics')
 @Controller('analytics')
 export class AnalyticsController {
-  constructor(private readonly analyticsService: AnalyticsService) {}
+  constructor(private readonly analyticsService: AnalyticsService) { }
+
+  @Post('session')
+  @ApiOperation({ summary: 'Créer une session visiteur (public)' })
+  createSession(@Body() dto: CreateSessionDto) {
+    return this.analyticsService.createSession(dto);
+  }
 
   @Post('events')
   @ApiOperation({ summary: 'Enregistrer un événement analytics (public)' })

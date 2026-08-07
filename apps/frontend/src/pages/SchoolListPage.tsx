@@ -49,6 +49,10 @@ function OfficialList({ schoolId, gradeId }: { schoolId: string; gradeId: string
       items: items.length,
       total,
     });
+    setContext({
+      schoolId,
+      gradeId,
+    });
     addMany(
       items.map((i) => ({
         productId: i.productId ?? undefined,
@@ -128,16 +132,19 @@ function CustomListForm() {
         const { data } = await api.post<{ fileUrl: string }>('/uploads', form);
         fileUrl = data.fileUrl;
       }
-      await api.post('/school-lists/custom', {
+
+      // ← on récupère l'id retourné
+      const { data: schoolList } = await api.post<{ id: string }>('/school-lists/custom', {
         source,
         fileUrl,
         rawText: source === 'CUSTOM_MANUAL' ? rawText : undefined,
         schoolId: schoolId || undefined,
         gradeId: gradeId || undefined,
       });
+
       addMany(
         [{ label: 'Liste scolaire personnalisée (à chiffrer par un conseiller)', quantity: 1, unitPrice: 0 }],
-        { schoolId: schoolId || undefined, gradeId: gradeId || undefined },
+        { schoolId: schoolId || undefined, gradeId: gradeId || undefined, schoolListId: schoolList.id }, // ← ajouté
       );
       navigate('/panier');
     } catch (err) {

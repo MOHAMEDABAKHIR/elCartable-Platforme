@@ -67,11 +67,11 @@ Evolution du chiffre d'affaires
 <YAxis/>
 
 <Tooltip
-
-formatter={(value:number)=>formatMAD(value)}
-
-labelFormatter={(label)=>`Jour : ${label}`}
-
+  formatter={(value) => {
+    const amount = typeof value === 'number' ? value : Number(value ?? 0);
+    return [formatMAD(amount), "Chiffre d'affaires"];
+  }}
+  labelFormatter={(label) => `Jour : ${label}`}
 />
 
 <Area
