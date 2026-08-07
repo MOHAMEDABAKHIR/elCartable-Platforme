@@ -1,96 +1,130 @@
-import type { ReactNode } from 'react';
-import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+} from 'lucide-react';
+
+import clsx from 'clsx';
+
 import { Card } from '../ui';
 
-interface DashboardStatCardProps {
+interface Props {
+
   title: string;
+
   value: string | number;
 
-  icon: ReactNode;
+  icon: React.ReactNode;
 
-  color?: string;
+  trend?: number;
 
-  change?: number;
+  trendLabel?: string;
 
-  subtitle?: string;
+  footer?: string;
 
-  loading?: boolean;
 }
 
 export function DashboardStatCard({
+
   title,
+
   value,
+
   icon,
-  change,
-  subtitle,
-  loading,
-  color = 'bg-brand-100 text-brand-700',
-}: DashboardStatCardProps) {
-  if (loading) {
-    return (
-      <Card className="animate-pulse">
-        <div className="h-28" />
-      </Card>
-    );
-  }
+
+  trend,
+
+  trendLabel,
+
+  footer,
+
+}: Props) {
+
+  const positive = (trend ?? 0) >= 0;
 
   return (
-    <Card className="relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+
+    <Card className="group transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+
       <div className="flex items-start justify-between">
+
         <div>
-          <p className="text-sm font-medium text-brand-500">
+
+          <p className="text-sm text-brand-500">
+
             {title}
+
           </p>
 
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brand-900">
+          <h3 className="mt-3 text-3xl font-extrabold text-brand-900">
+
             {value}
-          </h2>
 
-          {subtitle && (
-            <p className="mt-2 text-xs text-brand-400">
-              {subtitle}
-            </p>
-          )}
+          </h3>
+
         </div>
 
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-2xl ${color}`}
-        >
+        <div className="rounded-2xl bg-brand-100 p-3 transition group-hover:scale-110">
+
           {icon}
+
         </div>
+
       </div>
 
-      {change !== undefined && (
-        <div className="mt-5 flex items-center gap-2">
-          {change >= 0 ? (
-            <ArrowUpRight
-              className="text-green-600"
-              size={18}
-            />
-          ) : (
-            <ArrowDownRight
-              className="text-red-600"
-              size={18}
-            />
-          )}
+      {trend !== undefined && (
 
-          <span
-            className={`text-sm font-semibold ${
-              change >= 0
-                ? 'text-green-600'
-                : 'text-red-600'
-            }`}
+        <div className="mt-6 flex items-center justify-between">
+
+          <div
+
+            className={clsx(
+
+              "inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold",
+
+              positive
+
+                ? "bg-green-100 text-green-700"
+
+                : "bg-red-100 text-red-700"
+
+            )}
+
           >
-            {Math.abs(change)}%
+
+            {positive
+
+              ? <ArrowUpRight size={16} />
+
+              : <ArrowDownRight size={16} />
+
+            }
+
+            {Math.abs(trend)}%
+
+          </div>
+
+          <span className="text-xs text-brand-500">
+
+            {trendLabel}
+
           </span>
 
-          <span className="text-sm text-brand-400">
-            vs période précédente
-          </span>
         </div>
+
       )}
 
-      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-brand-50 opacity-40" />
+      {footer && (
+
+        <p className="mt-5 border-t border-brand-100 pt-4 text-xs text-brand-400">
+
+          {footer}
+
+        </p>
+
+      )}
+
     </Card>
+
   );
+
 }

@@ -1,22 +1,33 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Building2, MapPin, ArrowRight } from 'lucide-react';
+import { Building2, MapPin, ArrowRight, Search } from 'lucide-react';
+import { matchesSearch } from '../lib/search';
 
 import { fetchSchools } from '../lib/queries';
-import { Button } from '../components/ui';
+import { Button, SearchBarBySchool } from '../components/ui';
 import { track } from '../lib/analytics';
 
 export function SchoolsByCityPage() {
   const navigate = useNavigate();
   const { city } = useParams<{ city: string }>();
+  const [search, setSearch] = useState('');
 
   const schoolsQuery = useQuery({
     queryKey: ['schools', city],
-    queryFn: () => fetchSchools({ city }),
+    queryFn: () => fetchSchools({ city, limit: 500 }),
     enabled: !!city,
   });
 
-  const schools = schoolsQuery.data ?? [];
+  const allSchools = schoolsQuery.data ?? [];
+
+ const schools = search.trim()
+  ? allSchools.filter(
+      (school) =>
+        matchesSearch(school.name, search) ||
+        matchesSearch(school.address ?? '', search)
+    )
+  : allSchools;
 
   return (
     <section className="container mx-auto px-4 py-10">
@@ -33,6 +44,15 @@ export function SchoolsByCityPage() {
         </p>
       </div>
 
+      {/* Barre de recherche */}
+
+      <SearchBarBySchool
+        value={search}
+        onChange={setSearch}
+        placeholder="Rechercher une école par nom ou adresse..."
+        className="mb-8"
+      />
+
       {/* Loading */}
 
       {schoolsQuery.isLoading && (
@@ -41,21 +61,31 @@ export function SchoolsByCityPage() {
         </div>
       )}
 
-      {/* Aucune école */}
+      {/* Aucune école dans la ville */}
 
-      {!schoolsQuery.isLoading && schools.length === 0 && (
+      {!schoolsQuery.isLoading && allSchools.length === 0 && (
         <div className="rounded-2xl border bg-white p-10 text-center">
-          <Building2
-            className="mx-auto mb-4 text-brand-300"
-            size={60}
-          />
-
+          <Building2 className="mx-auto mb-4 text-brand-300" size={60} />
           <h2 className="text-2xl font-bold text-brand-900">
             Aucune école trouvée
           </h2>
 
           <p className="mt-2 text-brand-600">
             Nous n'avons encore aucune école enregistrée dans cette ville.
+          </p>
+        </div>
+      )}
+
+      {/* Aucun résultat de recherche */}
+
+      {!schoolsQuery.isLoading && allSchools.length > 0 && schools.length === 0 && (
+        <div className="rounded-2xl border bg-white p-10 text-center">
+          <Search className="mx-auto mb-4 text-brand-300" size={60} />
+          <h2 className="text-2xl font-bold text-brand-900">
+            Aucun résultat pour "{search}"
+          </h2>
+          <p className="mt-2 text-brand-600">
+            Essayez un autre nom ou une autre adresse.
           </p>
         </div>
       )}
@@ -87,10 +117,7 @@ export function SchoolsByCityPage() {
 
                 <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-100">
 
-                  <Building2
-                    size={40}
-                    className="text-brand-500"
-                  />
+                  <Building2 size={40} className="text-brand-500" />
 
                 </div>
 
@@ -110,7 +137,7 @@ export function SchoolsByCityPage() {
 
               <MapPin size={16} />
 
-              <span>{school.address}</span>
+              <span>{school.address ?? 'Adresse non renseignée'}</span>
 
             </div>
 
@@ -132,10 +159,7 @@ export function SchoolsByCityPage() {
 
               Voir les niveaux
 
-              <ArrowRight
-                size={18}
-                className="ml-2"
-              />
+              <ArrowRight size={18} className="ml-2" />
 
             </Button>
 

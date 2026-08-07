@@ -135,6 +135,34 @@ export function OrderDetailPage() {
               {order.grade && <Row label="Niveau" value={order.grade.name} />}
             </dl>
           </Card>
+          {order.schoolList && (
+            <Card>
+              <h2 className="font-bold text-brand-800">Liste personnalisée envoyée</h2>
+              <p className="mt-1 text-xs text-brand-500">
+                {order.schoolList.source === 'CUSTOM_MANUAL'
+                  ? 'Saisie manuelle par le client'
+                  : order.schoolList.source === 'CUSTOM_PHOTO'
+                    ? 'Photo envoyée par le client'
+                    : 'Fichier PDF envoyé par le client'}
+              </p>
+
+              {order.schoolList.rawText ? (
+                <pre className="mt-3 whitespace-pre-wrap rounded-lg bg-brand-50 p-3 text-sm text-brand-800">
+                  {order.schoolList.rawText}
+                </pre>
+              ) : order.schoolList.fileUrl ? (
+
+                <a href={order.schoolList.fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-block text-sm font-semibold text-brand-600 hover:underline"
+                >
+                  Ouvrir le fichier envoyé ↗
+                </a>
+              ) : null}
+            </Card>
+          )}
+
 
           <Card>
             <h2 className="font-bold text-brand-800">Changer le statut</h2>
@@ -174,7 +202,7 @@ export function OrderDetailPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 

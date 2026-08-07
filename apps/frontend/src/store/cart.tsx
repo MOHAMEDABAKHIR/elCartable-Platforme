@@ -12,6 +12,7 @@ export interface CartItem {
 export interface CartContext {
   schoolId?: string;
   gradeId?: string;
+  schoolListId?: string;
 }
 
 interface CartState {

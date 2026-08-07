@@ -7,6 +7,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { StorageService } from '../storage/storage.service';
 import { ensureFound } from '../common/prisma/query.utils';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as fontkit from '@pdf-lib/fontkit';
 
 const ORDER_INCLUDE = {
   items: true,
@@ -35,7 +38,7 @@ export class PdfService {
     private readonly config: ConfigService,
     private readonly audit: AuditService,
     private readonly storage: StorageService,
-  ) {}
+  ) { }
 
   /**
    * Génère (ou régénère) le PDF d'une commande, le persiste sur disque,
@@ -98,10 +101,19 @@ export class PdfService {
     const qr = await QRCode.toBuffer(trackingUrl, { width: 240, margin: 1 });
 
     const doc = await PDFDocument.create();
+    doc.registerFontkit(fontkit);
     doc.setTitle(`Fiche de commande ${order.orderNumber}`);
     const page = doc.addPage([595, 842]); // A4 en points
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-    const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const regularFont = fs.readFileSync(
+      path.join(process.cwd(), 'assets/fonts/NotoSans-VariableFont_wdth,wght.ttf'),
+    );
+
+    const boldFont = fs.readFileSync(
+      path.join(process.cwd(), 'assets/fonts/NotoSans-VariableFont_wdth,wght.ttf'),
+    );
+
+    const font = await doc.embedFont(regularFont);
+    const bold = await doc.embedFont(boldFont);
     const qrImage = await doc.embedPng(qr);
 
     const { width, height } = page.getSize();

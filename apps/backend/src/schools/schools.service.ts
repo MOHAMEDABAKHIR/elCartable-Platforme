@@ -53,8 +53,9 @@ export class SchoolsService {
     };
 
     // Filtre par ville
+
     if (query.city) {
-      where.city = query.city;
+      where.city = containsInsensitive(query.city);
     }
 
     // Recherche uniquement dans le nom de l'école

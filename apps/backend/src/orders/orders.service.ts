@@ -35,6 +35,7 @@ const ORDER_INCLUDE = {
   items: { include: { product: true } },
   school: true,
   grade: true,
+  schoolList: true,
   commercial: { select: { id: true, fullName: true, email: true } },
   history: { orderBy: { createdAt: 'desc' as const } },
 };
@@ -74,6 +75,7 @@ export class OrdersService {
             deliveryAddress: dto.deliveryAddress,
             schoolId: dto.schoolId,
             gradeId: dto.gradeId,
+            schoolListId: dto.schoolListId,
             note: dto.note,
             totalAmount,
             items: { create: resolvedItems },

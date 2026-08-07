@@ -102,3 +102,4 @@ export function EmptyState({ title, description }: { title: string; description?
     </div>
   );
 }
+export {SearchBarBySchool} from './SearchBarBySchool'

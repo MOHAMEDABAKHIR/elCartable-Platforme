@@ -108,6 +108,8 @@ export interface SchoolList {
   schoolId?: string | null;
   gradeId?: string | null;
   source: SchoolListSource;
+  fileUrl?: string | null;  
+  rawText?: string | null;   
   items: SchoolListItem[];
 }
 
@@ -140,6 +142,8 @@ export interface Order {
   commercial?: { id: string; fullName: string; email: string } | null;
   school?: School | null;
   grade?: Grade | null;
+  schoolListId?: string | null;  
+  schoolList?: SchoolList | null;
   items: OrderItem[];
   history?: OrderHistoryEntry[];
   pdfUrl?: string | null;
@@ -151,6 +155,7 @@ export interface CreateOrderItemPayload {
   productId?: string;
   label: string;
   quantity: number;
+  schoolListId?: string;
   unitPrice?: number;
 }
 
@@ -161,61 +166,90 @@ export interface CreateOrderPayload {
   deliveryAddress?: string;
   schoolId?: string;
   gradeId?: string;
+  schoolListId?: string;
   note?: string;
   items: CreateOrderItemPayload[];
 }
 
 export interface DashboardOverview {
+  period?: {
+    from?: string;
+    to?: string;
+  };
 
-    orders:{
+  orders: {
+    totalOrders: number;
+    totalRevenue: number;
+    averageCartValue: number;
+    byStatus: Record<string, number>;
+    nonCancelledOrders: number;
+  };
 
-        totalOrders:number;
+  visitors: {
+    sessionsCount: number;
+    newVisitorsCount: number;
+    addToCartSessions: number;
+    convertedSessions: number;
+    abandonmentRate: number;
+    averageTimeToConversionSeconds: number | null;
+  };
 
-        totalRevenue:number;
+  revenueHistory: {
+    date: string;
+    revenue: number;
+    orders: number;
+  }[];
 
-        averageCartValue:number;
+  topProducts: {
+    productId: string;
+    name: string;
+    quantity: number;
+    revenue: number;
+  }[];
 
-        byStatus:Record<string,number>;
-    };
+  topSchools: {
+    schoolId: string;
+    schoolName: string;
+    orders: number;
+    revenue: number;
+  }[];
 
-    visitors:{
+  topCities: {
+    city: string;
+    orders: number;
+    revenue: number;
+  }[];
 
-        sessionsCount:number;
+  topGrades: {
+    gradeId: string;
+    gradeName: string;
+    orders: number;
+    revenue: number;
+  }[];
 
-        convertedSessions:number;
+  latestOrders: {
+    id: string;
+    orderNumber: string;
+    customerName: string;
+    status: string;
+    total: number;
+    createdAt: string;
+  }[];
 
-        newVisitorsCount:number;
-    };
+  lowStockProducts: {
+    id: string;
+    name: string;
+    stock: number;
+    price: number;
+  }[];
 
-    revenueHistory:{
-        date:string;
-        revenue:number;
-        orders:number;
-    }[];
-
-    topSchools:{
-        schoolId:string;
-        schoolName:string;
-        orders:number;
-        revenue:number;
-    }[];
-
-    topProducts:{
-        productId:string;
-        name:string;
-        quantity:number;
-        revenue:number;
-    }[];
-
-    latestOrders:{
-        id:string;
-        orderNumber:string;
-        customerName:string;
-        status:string;
-        total:number;
-        createdAt:string;
-    }[];
-
+  activities: {
+    id: string;
+    action: string;
+    orderNumber: string;
+    user: string;
+    createdAt: string;
+  }[];
 }
 
 export interface Paginated<T> {
@@ -223,4 +257,13 @@ export interface Paginated<T> {
   total?: number;
   page?: number;
   limit?: number;
+}
+
+export interface SchoolByCity {
+  id: string;
+  name: string;
+  city?: string | null;
+  address?: string | null;
+  logoUrl?: string | null;
+  isActive: boolean;
 }

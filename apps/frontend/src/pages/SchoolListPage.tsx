@@ -103,7 +103,7 @@ const SOURCE_OPTIONS: { value: SchoolListSource; label: string }[] = [
 
 function CustomListForm() {
   const navigate = useNavigate();
-  const { addMany } = useCart();
+  const { addMany, setContext } = useCart();
   const schools = useQuery({ queryKey: ['schools'], queryFn: () => fetchSchools() });
   const grades = useQuery({ queryKey: ['grades'], queryFn: fetchGrades });
 
@@ -128,16 +128,19 @@ function CustomListForm() {
         const { data } = await api.post<{ fileUrl: string }>('/uploads', form);
         fileUrl = data.fileUrl;
       }
-      await api.post('/school-lists/custom', {
+
+      // ← on récupère l'id retourné
+      const { data: schoolList } = await api.post<{ id: string }>('/school-lists/custom', {
         source,
         fileUrl,
         rawText: source === 'CUSTOM_MANUAL' ? rawText : undefined,
         schoolId: schoolId || undefined,
         gradeId: gradeId || undefined,
       });
+
       addMany(
         [{ label: 'Liste scolaire personnalisée (à chiffrer par un conseiller)', quantity: 1, unitPrice: 0 }],
-        { schoolId: schoolId || undefined, gradeId: gradeId || undefined },
+        { schoolId: schoolId || undefined, gradeId: gradeId || undefined, schoolListId: schoolList.id }, // ← ajouté
       );
       navigate('/panier');
     } catch (err) {

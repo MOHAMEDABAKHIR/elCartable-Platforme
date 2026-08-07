@@ -54,6 +54,13 @@ export class CreateOrderDto {
   @IsString()
   gradeId?: string;
 
+  @ApiPropertyOptional({
+    description: 'ID de la SchoolList personnalisée soumise via /school-lists/custom (photo/fichier/saisie manuelle)',
+  })
+  @IsOptional()
+  @IsString()
+  schoolListId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -65,4 +72,6 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
+
+
 }
