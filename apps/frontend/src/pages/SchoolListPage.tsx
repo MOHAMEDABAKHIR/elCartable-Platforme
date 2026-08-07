@@ -49,6 +49,10 @@ function OfficialList({ schoolId, gradeId }: { schoolId: string; gradeId: string
       items: items.length,
       total,
     });
+    setContext({
+      schoolId,
+      gradeId,
+    });
     addMany(
       items.map((i) => ({
         productId: i.productId ?? undefined,
@@ -103,7 +107,7 @@ const SOURCE_OPTIONS: { value: SchoolListSource; label: string }[] = [
 
 function CustomListForm() {
   const navigate = useNavigate();
-  const { addMany, setContext } = useCart();
+  const { addMany } = useCart();
   const schools = useQuery({ queryKey: ['schools'], queryFn: () => fetchSchools() });
   const grades = useQuery({ queryKey: ['grades'], queryFn: fetchGrades });
 

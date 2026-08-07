@@ -4,9 +4,9 @@ Globe,
 
 Users,
 
-Monitor,
+// Monitor,
 
-Smartphone,
+// Smartphone,
 
 Clock3,
 
