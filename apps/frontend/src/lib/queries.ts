@@ -1,5 +1,9 @@
 import { api, toList } from './api';
 import type {
+  AnalyticsEventEntry,
+  AnalyticsEventType,
+  AuditAction,
+  AuditLogEntry,
   Category,
   CreateOrderPayload,
   DashboardOverview,
@@ -112,6 +116,33 @@ export async function fetchOrder(id: string): Promise<Order> {
 export async function fetchDashboard(): Promise<DashboardOverview> {
   const { data } = await api.get<DashboardOverview>('/dashboard/overview');
   return data;
+}
+
+// ==========================================================
+// Événements du site — journal d'audit (actions back-office) et
+// événements analytics (comportement visiteur), tous deux
+// réservés Admin/Super Admin.
+// ==========================================================
+
+export async function fetchAuditLog(params?: {
+  action?: AuditAction;
+  entityType?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+}): Promise<AuditLogEntry[]> {
+  const { data } = await api.get('/audit', { params });
+  return toList<AuditLogEntry>(data);
+}
+
+export async function fetchAnalyticsEvents(params?: {
+  type?: AnalyticsEventType;
+  sessionId?: string;
+  from?: string;
+  to?: string;
+}): Promise<AnalyticsEventEntry[]> {
+  const { data } = await api.get('/analytics/events', { params });
+  return toList<AnalyticsEventEntry>(data);
 }
 
 // ==========================================================

@@ -18,10 +18,12 @@ import { AdminSchoolsPage } from './pages/admin/AdminSchoolsPage';
 import { AdminOfficialListsPage } from './pages/admin/AdminOfficialListsPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminCatalogRefsPage } from './pages/admin/AdminCatalogRefsPage';
+import { EventsPage } from './pages/admin/EventsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { SchoolsByCityPage } from './pages/SchoolsByCityPage';
 import { SchoolPage } from './pages/SchoolPage';
 import { ScrollToTop } from './components/ScrollToTop';
+import { AllSchoolsPage } from './pages/Allschoolspage';
 export function App() {
   return (
     <>
@@ -38,6 +40,7 @@ export function App() {
           <Route path="*" element={<NotFoundPage />} />
           <Route path="/villes/:city" element={<SchoolsByCityPage />} />
           <Route path="/ecoles/:schoolId" element={<SchoolPage />} />
+          <Route path="/ecoles" element={<AllSchoolsPage />} />
         </Route>
 
         <Route path="/connexion" element={<LoginPage />} />
@@ -52,6 +55,14 @@ export function App() {
           }
         >
           <Route index element={<DashboardPage />} />
+          <Route
+            path="evenements"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                <EventsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="commandes" element={<OrdersPage />} />
           <Route path="commandes/:id" element={<OrderDetailPage />} />
           <Route
