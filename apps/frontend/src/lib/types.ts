@@ -252,6 +252,54 @@ export interface DashboardOverview {
   }[];
 }
 
+export type AuditAction =
+  | 'LOGIN'
+  | 'LOGOUT'
+  | 'CREATE'
+  | 'UPDATE'
+  | 'DELETE'
+  | 'PDF_DOWNLOAD'
+  | 'VIEW'
+  | 'EXPORT';
+
+export interface AuditLogEntry {
+  id: string;
+  action: AuditAction;
+  entityType?: string | null;
+  entityId?: string | null;
+  metadata?: unknown;
+  ipAddress?: string | null;
+  createdAt: string;
+  user?: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: UserRole;
+  } | null;
+}
+
+export type AnalyticsEventType =
+  | 'PAGE_VIEW'
+  | 'SCROLL'
+  | 'CLICK'
+  | 'SCHOOL_SEARCH'
+  | 'PRODUCT_VIEW'
+  | 'ADD_TO_CART'
+  | 'CART_ABANDON'
+  | 'CONVERSION'
+  | 'SEARCH'
+  | 'CHECKOUT_STARTED'
+  | 'ORDER_CREATED';
+
+export interface AnalyticsEventEntry {
+  id: string;
+  type: AnalyticsEventType;
+  sessionId: string;
+  path?: string | null;
+  metadata?: unknown;
+  createdAt: string;
+}
+
 export interface Paginated<T> {
   data: T[];
   total?: number;

@@ -11,12 +11,16 @@ import { Building2 } from 'lucide-react';
 import { MOROCCO_CITIES } from '../lib/moroccoCities';
 import { track } from '../lib/analytics';
 
+import schoolDefaultImagel from '../../public/schoolDefaultImagel.jpg';
+import productDefaultImagel from '../../public/productDefaultImagel.avif';
+
 export function LandingPage() {
   const navigate = useNavigate();
   const [city, setCity] = useState('');
 
-  // Carrousel décoratif : un échantillon suffit, pas besoin de charger toutes les écoles.
+  // Carrousel décoratif : un échantillon suffit
   const CAROUSEL_LIMIT = 100;
+
   const schools = useQuery({
     queryKey: ['schools', 'carousel'],
     queryFn: () =>
@@ -24,16 +28,32 @@ export function LandingPage() {
         limit: CAROUSEL_LIMIT,
       }),
   });
-  const products = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts() });
 
-  // Uniquement les écoles/produits qui ont bien une image à afficher dans la galerie
+  const products = useQuery({
+    queryKey: ['products'],
+    queryFn: () => fetchProducts(),
+  });
+
+  // Écoles : logo + nom associés dans le même objet
   const schoolImages = (schools.data ?? [])
-    .filter((school) => !!school.logoUrl)
-    .map((school) => ({ src: school.logoUrl as string, alt: school.name }));
+    .slice() // évite de muter le cache react-query
+    .sort((a, b) => {
+      const aHasImage = Boolean(a.logoUrl);
+      const bHasImage = Boolean(b.logoUrl);
+      return Number(bHasImage) - Number(aHasImage); // true (1) avant false (0)
+    }).map((school) => ({
+      src: school.logoUrl || (schoolDefaultImagel as string),
+      alt: school.name,
+      name: school.name,
+      adress: school.address,
+    }));
 
-  const productImages = (products.data ?? [])
-    .filter((product) => !!product.imageUrl)
-    .map((product) => ({ src: product.imageUrl as string, alt: product.name }));
+  // Produits
+  const productImages = (products.data ?? []).map((product) => ({
+    src: product.imageUrl || (productDefaultImagel as string),
+    alt: product.name,
+    name: product.name,
+  }));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +69,8 @@ export function LandingPage() {
   };
 
   return (
-    <section className="pt-0 pb-6 sm:pb-10 px-4 sm:px-6 lg:px-0">
+    <section>
+      {/* HERO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
         {/* LEFT */}
         <div className="order-1 lg:order-1">
@@ -115,23 +136,29 @@ export function LandingPage() {
           />
         </div>
       </div>
-      {/* Titre */}
-      <h1 className="mb-4  text-center pt-15 sm:mb-6 text-3xl text-accent-000">
+
+      {/* ÉCOLES */}
+      <h2 className="mb-4 text-center pt-15 sm:mb-6 text-3xl text-accent-000">
         Les écoles :
-      </h1>
+      </h2>
+
       <InfiniteimagescrollSchool
         images={schoolImages}
-        durationSeconds={25}
       />
-      <CtaButtons primaryLabel="Chercher votre école ici ->" />
-      <h1 className="mb-4  text-center pt-15 sm:mb-6 text-3xl text-accent-900">
+
+      <CtaButtons primaryLabel="Chercher votre école ici →" primaryHref="/ecoles" />
+
+      {/* FOURNITURES */}
+      <h2 className="mb-4 text-center pt-15 sm:mb-6 text-3xl text-accent-900">
         Les fournitures scolaires :
-      </h1>
+      </h2>
+
       <InfiniteimagescrollSupplies
         images={productImages}
-        durationSeconds={15}
+        durationSeconds={150}
       />
-      <CtaButtons primaryLabel="Commencez vos achats ->" />
+
+      <CtaButtons primaryLabel="Commencez vos achats →" />
     </section>
 
   );

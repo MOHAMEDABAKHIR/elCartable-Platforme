@@ -1,70 +1,106 @@
 import type { CSSProperties, FC } from "react";
+import { useMemo } from "react";
 
 interface ImageItem {
   src: string;
   alt: string;
+  name: string;
 }
 
 interface InfiniteImageScrollProps {
   images: ImageItem[];
-  /** Durée d'un cycle complet en secondes. Plus petit = plus rapide. */
+  /**
+   * Durée d'un cycle complet en secondes.
+   * Si omis, elle est calculée automatiquement à partir du nombre d'images
+   * (voir `secondsPerImage`), pour garder une vitesse de défilement constante
+   * peu importe le nombre d'éléments.
+   */
   durationSeconds?: number;
+  /** Nombre de secondes attribuées par image quand `durationSeconds` n'est pas fourni. */
+  secondsPerImage?: number;
+  /** Durée minimale/maximale pour éviter un scroll trop rapide ou trop lent. */
+  minDurationSeconds?: number;
+  maxDurationSeconds?: number;
   /** Sens du défilement. */
   direction?: "left" | "right";
   /** Hauteur des images (classe Tailwind, ex: "h-24"). */
   imageHeightClassName?: string;
+  /** Met le défilement en pause au survol. */
+  pauseOnHover?: boolean;
 }
 
 /**
  * Défilement horizontal infini d'images, basé sur la technique Cruip :
  * https://cruip.com/create-an-infinite-horizontal-scroll-animation-with-tailwind-css/
  *
- * La liste est dupliquée deux fois dans le JSX (au lieu d'Alpine.js) : quand la
- * première liste atteint -100%, la seconde prend le relais exactement au même
- * endroit visuellement, ce qui rend la boucle invisible.
+ * La liste est dupliquée deux fois dans le JSX : quand la première liste
+ * atteint -100%, la seconde prend le relais exactement au même endroit
+ * visuellement, ce qui rend la boucle invisible.
  *
- * ⚠️ Nécessite l'extension `animate-infinite-scroll` dans tailwind.config.js
- * (voir tailwind.config.snippet.js).
+ * ⚠️ Nécessite l'extension `animate-infinite-scroll` dans tailwind.config.js.
  */
 export const InfiniteimagescrollSupplies: FC<InfiniteImageScrollProps> = ({
   images,
-  durationSeconds = 15,
+  durationSeconds,
+  secondsPerImage = 3,
+  minDurationSeconds = 12,
+  maxDurationSeconds = 460,
   direction = "left",
   imageHeightClassName = "h-50",
+  pauseOnHover = true,
 }) => {
+  const computedDuration = useMemo(() => {
+    if (durationSeconds) return durationSeconds;
+    if (images.length === 0) return minDurationSeconds;
+
+    const raw = images.length * secondsPerImage;
+    return Math.min(Math.max(raw, minDurationSeconds), maxDurationSeconds);
+  }, [durationSeconds, images.length, secondsPerImage, minDurationSeconds, maxDurationSeconds]);
+
   const style = {
-    "--scroll-duration": `${durationSeconds}s`,
+    "--scroll-duration": `${computedDuration}s`,
   } as CSSProperties;
 
   const directionClass = direction === "right" ? "[animation-direction:reverse]" : "";
+  const hoverPauseClass = pauseOnHover ? "hover:[animation-play-state:paused]" : "";
+
+  if (images.length === 0) return null;
+
+  const renderList = (ariaHidden: boolean) => (
+    <ul
+      aria-hidden={ariaHidden || undefined}
+      className={`flex items-center justify-center md:justify-start flex-nowrap [&_li]:mx-8 [&_img]:max-w-none animate-infinite-scroll ${directionClass} ${hoverPauseClass}`}
+    >
+      {images.map((image, index) => (
+        <li
+          key={`${ariaHidden ? "dup" : "orig"}-${image.src}-${index}`}
+          className="flex flex-col items-center gap-2 shrink-0"
+        >
+          <img
+            src={image.src}
+            alt={ariaHidden ? "" : image.alt}
+            draggable={false}
+            loading="lazy"
+            className={`${imageHeightClassName} w-auto object-contain select-none transition-transform duration-300 will-change-transform hover:scale-105`}
+          />
+          <span className="mt-2 text-center">
+            {image.name}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <div
       style={style}
-      className="w-full inline-flex flex-nowrap overflow-hidden pt-10 [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]"
+      role="marquee"
+      className="group w-full overflow-hidden pt-10 [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]"
     >
-      {/* Premier passage */}
-      <ul
-        className={`flex items-center justify-center md:justify-start [&_li]:mx-8 [&_img]:max-w-none animate-infinite-scroll ${directionClass}`}
-      >
-        {images.map((image, index) => (
-          <li key={`a-${index}`}>
-            <img src={image.src} alt={image.alt} className={`${imageHeightClassName} w-auto object-contain`} />
-          </li>
-        ))}
-      </ul>
-
-      {/* Duplicata pour la boucle (masqué aux lecteurs d'écran) */}
-      <ul
-        aria-hidden="true"
-        className={`flex items-center justify-center md:justify-start [&_li]:mx-8 [&_img]:max-w-none animate-infinite-scroll ${directionClass} `}
-      >
-        {images.map((image, index) => (
-          <li key={`b-${index}`}>
-            <img src={image.src} alt="" className={`${imageHeightClassName} w-auto object-contain`} />
-          </li>
-        ))}
-      </ul>
+      <div className="inline-flex w-max flex-nowrap">
+        {renderList(false)}
+        {renderList(true)}
+      </div>
     </div>
   );
 };

@@ -34,6 +34,7 @@ export function PublicLayout() {
 
 const ADMIN_NAV = [
   { to: '/admin', label: 'Tableau de bord', end: true },
+  { to: '/admin/evenements', label: 'Événements', roles: ['ADMIN', 'SUPER_ADMIN'] },
   { to: '/admin/commandes', label: 'Commandes' },
   { to: '/admin/produits', label: 'Produits', roles: ['ADMIN', 'SUPER_ADMIN'] },
   { to: '/admin/ecoles', label: 'Écoles', roles: ['ADMIN', 'SUPER_ADMIN'] },
