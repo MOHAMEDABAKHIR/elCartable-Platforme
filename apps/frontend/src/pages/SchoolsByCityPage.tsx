@@ -15,7 +15,7 @@ export function SchoolsByCityPage() {
 
   const schoolsQuery = useQuery({
     queryKey: ['schools', city],
-    queryFn: () => fetchSchools({ city, limit: 500 }),
+    queryFn: () => fetchSchools({ city }),
     enabled: !!city,
   });
 
