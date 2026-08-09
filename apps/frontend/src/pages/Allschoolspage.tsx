@@ -14,7 +14,7 @@ export function AllSchoolsPage() {
 
   const schoolsQuery = useQuery({
     queryKey: ['schools', 'all'],
-    queryFn: () => fetchSchools({ limit: 500 }),
+    queryFn: () => fetchSchools(),
   });
 
   const allSchools = schoolsQuery.data ?? [];
