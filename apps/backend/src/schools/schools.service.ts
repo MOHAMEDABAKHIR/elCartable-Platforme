@@ -10,8 +10,8 @@ import { SearchSchoolAdminDto } from './dto/search-school-admin.dto';
 
 /** Plafond du dropdown public : une recherche qui matche encore beaucoup
  * d'écoles n'a pas besoin d'en renvoyer plus — l'utilisateur affine en tapant. */
-const PUBLIC_SEARCH_DEFAULT_LIMIT = 20;
-const ADMIN_LIST_DEFAULT_LIMIT = 20;
+const PUBLIC_SEARCH_DEFAULT_LIMIT = 2000;
+const ADMIN_LIST_DEFAULT_LIMIT = 2000;
 
 @Injectable()
 export class SchoolsService {
