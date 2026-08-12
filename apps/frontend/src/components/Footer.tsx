@@ -182,11 +182,6 @@ export const Footer: FC = () => {
               Contact
             </h3>
             <address className="mt-5 space-y-3 text-sm not-italic leading-relaxed text-slate-400">
-              <p className="flex items-start gap-2">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-teal-400" aria-hidden="true" />
-                {/* TODO: remplacer par l'adresse réelle */}
-                <span>123 Avenue Hassan II, Casablanca, Maroc</span>
-              </p>
               <p className="flex items-center gap-2">
                 <Phone className="h-4 w-4 shrink-0 text-teal-400" aria-hidden="true" />
                 <a
@@ -208,9 +203,7 @@ export const Footer: FC = () => {
               <p className="flex items-start gap-2">
                 <Clock className="mt-0.5 h-4 w-4 shrink-0 text-teal-400" aria-hidden="true" />
                 <span>
-                  Lun - Sam
-                  <br />
-                  9h00 - 18h00
+                  08h00 à 22h00
                 </span>
               </p>
             </address>
