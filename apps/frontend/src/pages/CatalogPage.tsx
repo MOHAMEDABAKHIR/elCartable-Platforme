@@ -4,6 +4,9 @@ import { fetchCategories, fetchProducts } from '../lib/queries';
 import { useCart } from '../store/cart';
 import { formatMAD } from '../lib/format';
 import { Badge, Button, Card, EmptyState, Input, Select, Spinner } from '../components/ui';
+import { CartPanel } from '../components/CartPanel';
+import { MobileCartBar } from '../components/MobileCartBar';
+import { track } from '../lib/analytics';
 import type { Product } from '../lib/types';
 
 function ProductCard({ product }: { product: Product }) {
@@ -18,6 +21,13 @@ function ProductCard({ product }: { product: Product }) {
       unitPrice: Number(product.price),
       imageUrl: product.imageUrl,
     });
+
+    track('ADD_TO_CART', {
+      productId: product.id,
+      productName: product.name,
+      price: Number(product.price),
+    });
+
     setAdded(true);
     setTimeout(() => setAdded(false), 1200);
   };
@@ -57,42 +67,55 @@ export function CatalogPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-brand-900">Catalogue</h1>
-        <p className="text-brand-600">Fournitures, manuels et accessoires scolaires.</p>
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Input
-          placeholder="Rechercher un article…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="sm:flex-1"
-        />
-        <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="sm:w-56">
-          <option value="">Toutes les catégories</option>
-          {categories.data?.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      {products.isLoading ? (
-        <Spinner label="Chargement du catalogue…" />
-      ) : products.isError ? (
-        <EmptyState title="Impossible de charger le catalogue" description="Vérifiez que l'API est démarrée." />
-      ) : products.data && products.data.length > 0 ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {products.data.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
+    <div className="grid gap-6 pb-24 lg:grid-cols-[1fr_360px] lg:pb-0">
+      {/* Colonne principale : catalogue */}
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-extrabold text-brand-900">Catalogue</h1>
+          <p className="text-brand-600">Fournitures, manuels et accessoires scolaires.</p>
         </div>
-      ) : (
-        <EmptyState title="Aucun article trouvé" description="Essayez une autre recherche ou catégorie." />
-      )}
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Input
+            placeholder="Rechercher un article…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="sm:flex-1"
+          />
+          <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="sm:w-56">
+            <option value="">Toutes les catégories</option>
+            {categories.data?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        {products.isLoading ? (
+          <Spinner label="Chargement du catalogue…" />
+        ) : products.isError ? (
+          <EmptyState title="Impossible de charger le catalogue" description="Vérifiez que l'API est démarrée." />
+        ) : products.data && products.data.length > 0 ? (
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {products.data.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="Aucun article trouvé" description="Essayez une autre recherche ou catégorie." />
+        )}
+      </div>
+
+      {/* Colonne panier : visible en permanence sur desktop, sticky sous le header */}
+      <aside className="hidden lg:block">
+        <div className="sticky top-24">
+          <CartPanel />
+        </div>
+      </aside>
+
+      {/* Panier mobile : barre flottante + bottom-sheet */}
+      <MobileCartBar />
     </div>
   );
 }
