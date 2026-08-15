@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { SchoolListSource } from '@prisma/client';
+import { Prisma, SchoolListSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ensureFound } from '../common/prisma/query.utils';
 import { CreateOfficialSchoolListDto } from './dto/create-official-school-list.dto';
@@ -138,4 +138,42 @@ export class SchoolListsService {
     });
     return ensureFound(list, 'Liste scolaire introuvable.');
   }
+  async findAllOfficial(query: { search?: string; page?: number; limit?: number }) {
+  const page = query.page && query.page > 0 ? query.page : 1;
+  const limit = query.limit && query.limit > 0 ? query.limit : 20;
+
+  const where: Prisma.SchoolListWhereInput = {
+    source: SchoolListSource.OFFICIAL,
+    isActive: true,
+    ...(query.search
+      ? {
+          OR: [
+            { school: { name: { contains: query.search, mode: 'insensitive' } } },
+            { grade: { name: { contains: query.search, mode: 'insensitive' } } },
+          ],
+        }
+      : {}),
+  };
+
+  const [data, total] = await Promise.all([
+    this.prisma.schoolList.findMany({
+      where,
+      include: { school: true, grade: true, items: true },
+      orderBy: { updatedAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    this.prisma.schoolList.count({ where }),
+  ]);
+
+  return {
+    data,
+    meta: { total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) },
+  };
+}
+
+async deactivate(id: string) {
+  await this.findOne(id);
+  return this.prisma.schoolList.update({ where: { id }, data: { isActive: false } });
+}
 }

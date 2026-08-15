@@ -24,7 +24,7 @@ export function SearchBarBySchool({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-full border bg-white py-2.5 pl-10 pr-4 text-sm text-brand-900 outline-none focus:ring-2 focus:ring-brand-300"
+        className="w-full rounded-full border border-gray-300 bg-white py-2.5 pl-10 pr-4 text-sm text-brand-900 outline-none focus:ring-brand-300"
       />
     </div>
   );
