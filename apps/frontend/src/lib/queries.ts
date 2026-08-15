@@ -278,3 +278,16 @@ export async function setSchoolGrades(
 
   return data;
 }
+export async function fetchOfficialListsAdmin(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}): Promise<PaginatedResult<SchoolList>> {
+  const { data } = await api.get<PaginatedResult<SchoolList>>('/school-lists/official', { params });
+  return data;
+}
+
+export async function deactivateOfficialList(id: string): Promise<SchoolList> {
+  const { data } = await api.delete<SchoolList>(`/school-lists/${id}`);
+  return data;
+}

@@ -24,6 +24,11 @@ import { SchoolsByCityPage } from './pages/SchoolsByCityPage';
 import { SchoolPage } from './pages/SchoolPage';
 import { ScrollToTop } from './components/ScrollToTop';
 import { AllSchoolsPage } from './pages/Allschoolspage';
+import { AdminSchoolGradesPage } from './pages/admin/AdminSchoolGradesPage';
+import { AdminOfficialListsIndexPage } from './pages/admin/AdminOfficialListsIndexPage';
+import { AdminSchoolDetailPage } from './pages/admin/AdminSchoolDetailPage';
+
+
 export function App() {
   return (
     <>
@@ -41,6 +46,7 @@ export function App() {
           <Route path="/villes/:city" element={<SchoolsByCityPage />} />
           <Route path="/ecoles/:schoolId" element={<SchoolPage />} />
           <Route path="/ecoles" element={<AllSchoolsPage />} />
+
         </Route>
 
         <Route path="/connexion" element={<LoginPage />} />
@@ -63,6 +69,14 @@ export function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="ecoles-niveaux"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminSchoolGradesPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="commandes" element={<OrdersPage />} />
           <Route path="commandes/:id" element={<OrderDetailPage />} />
           <Route
@@ -81,14 +95,15 @@ export function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="listes-officielles"
-            element={
-              <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
-                <AdminOfficialListsPage />
-              </ProtectedRoute>
-            }
-          />
+                  <Route
+          path="ecoles/:schoolId"
+          element={
+            <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+              <AdminSchoolDetailPage />
+            </ProtectedRoute>
+          }
+        />
+
           <Route
             path="catalogue-refs"
             element={
@@ -102,6 +117,22 @@ export function App() {
             element={
               <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
                 <AdminUsersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="listes-officielles"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminOfficialListsIndexPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="listes-officielles/nouvelle"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminOfficialListsPage />
               </ProtectedRoute>
             }
           />

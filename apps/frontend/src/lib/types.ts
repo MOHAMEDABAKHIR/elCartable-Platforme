@@ -108,9 +108,12 @@ export interface SchoolList {
   schoolId?: string | null;
   gradeId?: string | null;
   source: SchoolListSource;
-  fileUrl?: string | null;  
-  rawText?: string | null;   
+  fileUrl?: string | null;
+  rawText?: string | null;
   items: SchoolListItem[];
+  school?: School | null;
+  grade?: Grade | null;
+  updatedAt?: string;
 }
 
 export interface OrderItem {
@@ -142,7 +145,7 @@ export interface Order {
   commercial?: { id: string; fullName: string; email: string } | null;
   school?: School | null;
   grade?: Grade | null;
-  schoolListId?: string | null;  
+  schoolListId?: string | null;
   schoolList?: SchoolList | null;
   items: OrderItem[];
   history?: OrderHistoryEntry[];

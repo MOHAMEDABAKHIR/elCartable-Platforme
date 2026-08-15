@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -7,6 +7,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { SchoolListsService } from './school-lists.service';
 import { CreateOfficialSchoolListDto } from './dto/create-official-school-list.dto';
 import { SubmitCustomSchoolListDto } from './dto/submit-custom-school-list.dto';
+import { SearchOfficialListDto } from './dto/search-official-list.dto';
 
 @ApiTags('SchoolLists')
 @Controller('school-lists')
@@ -19,6 +20,15 @@ export class SchoolListsController {
   })
   findOfficialList(@Query('schoolId') schoolId: string, @Query('gradeId') gradeId: string) {
     return this.schoolListsService.findOfficialList(schoolId, gradeId);
+  }
+
+  @Get('official')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Liste paginée des listes officielles existantes (Admin)' })
+  findAllOfficial(@Query() query: SearchOfficialListDto) {
+    return this.schoolListsService.findAllOfficial(query);
   }
 
   @Get(':id')
@@ -43,5 +53,14 @@ export class SchoolListsController {
   @ApiOperation({ summary: 'Créer/remplacer la liste officielle d’une école + niveau (Admin)' })
   createOrReplaceOfficialList(@Body() dto: CreateOfficialSchoolListDto) {
     return this.schoolListsService.createOrReplaceOfficialList(dto);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Désactiver une liste officielle (Admin) — soft delete' })
+  deactivate(@Param('id') id: string) {
+    return this.schoolListsService.deactivate(id);
   }
 }

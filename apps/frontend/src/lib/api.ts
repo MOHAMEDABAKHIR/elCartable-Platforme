@@ -164,3 +164,16 @@ export function toList<T>(payload: T[] | { data: T[] } | undefined | null): T[] 
   if (Array.isArray((payload as { data?: T[] }).data)) return (payload as { data: T[] }).data;
   return [];
 }
+export async function fetchOfficialListsAdmin(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}): Promise<PaginatedResult<SchoolList>> {
+  const { data } = await api.get<PaginatedResult<SchoolList>>('/school-lists/official', { params });
+  return data;
+}
+
+export async function deactivateOfficialList(id: string): Promise<SchoolList> {
+  const { data } = await api.delete<SchoolList>(`/school-lists/${id}`);
+  return data;
+}

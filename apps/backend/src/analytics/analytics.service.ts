@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { buildDateRangeFilter, ensureFound } from '../common/prisma/query.utils';
+import { buildDateRangeFilter } from '../common/prisma/query.utils';
 import { CreateAnalyticsEventDto } from './dto/create-analytics-event.dto';
 import { SearchAnalyticsEventDto } from './dto/search-analytics-event.dto';
 import { CreateSessionDto } from './dto/create-session.dto';
@@ -17,13 +17,23 @@ import { CreateSessionDto } from './dto/create-session.dto';
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) { }
 
+  /**
+   * Enregistre un événement analytics. Si la session référencée n'existe
+   * plus (DB nettoyée, session expirée, désynchro front/back...), on ne
+   * fait pas échouer l'ingestion : on récupère/recrée une session à la
+   * volée plutôt que de renvoyer un 404 qui polluerait les logs en boucle
+   * côté front sans jamais se rattraper.
+   */
   async create(dto: CreateAnalyticsEventDto) {
-    const session = await this.prisma.visitorSession.findUnique({ where: { id: dto.sessionId } });
-    ensureFound(session, 'Session visiteur introuvable.');
+    let session = await this.prisma.visitorSession.findUnique({ where: { id: dto.sessionId } });
+
+    if (!session) {
+      session = await this.recoverSession(dto.anonId);
+    }
 
     return this.prisma.analyticsEvent.create({
       data: {
-        sessionId: dto.sessionId,
+        sessionId: session.id,
         type: dto.type,
         path: dto.path,
         metadata: dto.metadata as Prisma.InputJsonValue,
@@ -44,6 +54,7 @@ export class AnalyticsService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
   async createSession(dto: CreateSessionDto) {
     let visitor = await this.prisma.visitor.findUnique({
       where: { anonId: dto.anonId },
@@ -73,6 +84,25 @@ export class AnalyticsService {
         visitorId: visitor.id,
         entryPage: dto.entryPage,
       },
+    });
+  }
+
+  /**
+   * Récupère (ou crée) une session valide quand celle envoyée par le client
+   * n'existe plus en base. Rattache au visiteur connu via `anonId` si fourni,
+   * sinon crée un visiteur "récupéré" jetable plutôt que de bloquer l'event.
+   */
+  private async recoverSession(anonId?: string) {
+    const resolvedAnonId = anonId ?? `recovered_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    const visitor = await this.prisma.visitor.upsert({
+      where: { anonId: resolvedAnonId },
+      update: { sessionsCount: { increment: 1 } },
+      create: { anonId: resolvedAnonId, sessionsCount: 1 },
+    });
+
+    return this.prisma.visitorSession.create({
+      data: { visitorId: visitor.id },
     });
   }
 }

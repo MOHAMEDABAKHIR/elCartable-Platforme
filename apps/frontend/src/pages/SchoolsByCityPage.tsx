@@ -7,11 +7,13 @@ import { matchesSearch } from '../lib/search';
 import { fetchSchools } from '../lib/queries';
 import { Button, SearchBarBySchool } from '../components/ui';
 import { track } from '../lib/analytics';
+import { AddSchoolModal } from '../components/AddSchoolModal';
 
 export function SchoolsByCityPage() {
   const navigate = useNavigate();
   const { city } = useParams<{ city: string }>();
   const [search, setSearch] = useState('');
+  const [isAddSchoolOpen, setIsAddSchoolOpen] = useState(false);
 
   const schoolsQuery = useQuery({
     queryKey: ['schools', city],
@@ -21,13 +23,13 @@ export function SchoolsByCityPage() {
 
   const allSchools = schoolsQuery.data ?? [];
 
- const schools = search.trim()
-  ? allSchools.filter(
+  const schools = search.trim()
+    ? allSchools.filter(
       (school) =>
         matchesSearch(school.name, search) ||
         matchesSearch(school.address ?? '', search)
     )
-  : allSchools;
+    : allSchools;
 
   return (
     <section className="container mx-auto px-4 py-10">
@@ -87,6 +89,12 @@ export function SchoolsByCityPage() {
           <p className="mt-2 text-brand-600">
             Essayez un autre nom ou une autre adresse.
           </p>
+          <Button
+            className="mt-6 mx-auto"
+            onClick={() => setIsAddSchoolOpen(true)}
+          >
+            Ajouter votre école
+          </Button>
         </div>
       )}
 
@@ -98,7 +106,7 @@ export function SchoolsByCityPage() {
 
           <div
             key={school.id}
-            className="rounded-3xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+            className="rounded-sm border border-gray-300 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
           >
 
             {/* Logo */}
@@ -110,14 +118,15 @@ export function SchoolsByCityPage() {
                 <img
                   src={school.logoUrl}
                   alt={school.name}
-                  className="h-24 w-24 rounded-full object-cover border"
+                  className="h-24"
                 />
 
               ) : (
 
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-100">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full">
 
-                  <Building2 size={40} className="text-brand-500" />
+                  <img
+                    src="../../wizarat-tarbiya-logo.png" alt="logo-ministre-education-formation" />
 
                 </div>
 
@@ -168,7 +177,11 @@ export function SchoolsByCityPage() {
         ))}
 
       </div>
-
+      <AddSchoolModal
+        isOpen={isAddSchoolOpen}
+        onClose={() => setIsAddSchoolOpen(false)}
+        defaultSearch={search}
+      />
     </section>
   );
 }
