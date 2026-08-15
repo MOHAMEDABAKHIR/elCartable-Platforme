@@ -11,7 +11,7 @@ import {
   fetchSchoolList,
   deactivateOfficialList,
 } from '../../lib/queries';
-import { Alert, Badge, Button, Card, Field, Input, Spinner } from '../../components/ui';
+import { Alert, Badge, Button, Card, Input, Spinner } from '../../components/ui';
 import type { Grade } from '../../lib/types';
 
 export function AdminSchoolDetailPage() {
