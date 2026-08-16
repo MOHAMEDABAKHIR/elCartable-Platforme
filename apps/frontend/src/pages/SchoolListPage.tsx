@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Backpack,
-  BookOpen,
   Camera,
   Check,
   ChevronDown,
@@ -36,32 +34,13 @@ const TURQUOISE = '#56BFB5';
 /* -------------------------------------------------------------------------- */
 function Hero() {
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-brand-100 bg-gradient-to-br from-violet-50 via-white to-white px-6 py-10 sm:px-10 sm:py-12">
+    <section className="relative overflow-hidden rounded-3xl">
       <div className="relative z-10 max-w-xl">
         <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-brand-900 sm:text-4xl">
           Votre liste scolaire
         </h1>
-        <p className="mt-2.5 text-base text-brand-500 sm:text-lg">
-          Nous préparons tout pour vous faciliter la rentrée <span aria-hidden>🎒</span>
-        </p>
       </div>
 
-      {/* Illustration décorative — masquée sur mobile pour garder le hero compact */}
-      <div className="pointer-events-none absolute -right-4 top-1/2 hidden -translate-y-1/2 sm:block">
-        <div className="relative h-40 w-40">
-          <div
-            className="absolute inset-0 rounded-[42%_58%_58%_42%/50%_42%_58%_50%]"
-            style={{ backgroundColor: `${TURQUOISE}1A` }}
-          />
-          <Backpack className="absolute left-7 top-7 h-16 w-16 text-brand-400" strokeWidth={1.4} />
-          <BookOpen
-            className="absolute bottom-5 right-9 h-10 w-10"
-            strokeWidth={1.4}
-            style={{ color: TURQUOISE }}
-          />
-          <PenLine className="absolute right-4 top-3 h-8 w-8 text-amber-400" strokeWidth={1.4} />
-        </div>
-      </div>
     </section>
   );
 }
@@ -117,14 +96,14 @@ function OfficialList({ schoolId, gradeId }: { schoolId: string; gradeId: string
   };
 
   return (
-    <Card className="rounded-3xl border border-brand-100 shadow-sm">
+    <Card className="rounded-sm border border-gray-300">
       <div className="flex items-center gap-2.5">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600">
           <ShieldCheck className="h-4.5 w-4.5" strokeWidth={1.75} />
         </span>
         <h2 className="text-lg font-bold text-brand-800">Liste officielle</h2>
       </div>
-      <div className="mt-4 overflow-hidden rounded-2xl border border-brand-100">
+      <div className="mt-4 overflow-hidden rounded-2xl">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-brand-100 bg-brand-50/60 text-left text-brand-500">
@@ -136,7 +115,22 @@ function OfficialList({ schoolId, gradeId }: { schoolId: string; gradeId: string
           <tbody>
             {items.map((i) => (
               <tr key={i.id} className="border-b border-brand-50 last:border-0">
-                <td className="px-4 py-2.5 text-brand-800">{i.product?.name ?? i.label}</td>
+                <td className="px-4 py-2.5 text-brand-800">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-50">
+                      {i.product?.imageUrl ? (
+                        <img
+                          src={i.product.imageUrl}
+                          alt={i.product?.name ?? i.label}
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-lg">🛒</span>
+                      )}
+                    </span>
+                    <span>{i.product?.name ?? i.label}</span>
+                  </div>
+                </td>
                 <td className="px-4 py-2.5 text-center text-brand-600">{i.quantity}</td>
                 <td className="px-4 py-2.5 text-right text-brand-600">
                   {i.product ? formatMAD(Number(i.product.price) * i.quantity) : '—'}
@@ -187,11 +181,10 @@ function SourceToggle({
             role="radio"
             aria-checked={active}
             onClick={() => onChange(o.value)}
-            className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold leading-tight transition sm:flex-row sm:justify-center sm:gap-1.5 sm:text-sm ${
-              active
+            className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold leading-tight transition sm:flex-row sm:justify-center sm:gap-1.5 sm:text-sm ${active
                 ? 'bg-white text-brand-700 shadow-sm ring-1 ring-brand-100'
                 : 'text-brand-400 hover:text-brand-600'
-            }`}
+              }`}
           >
             <o.icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
             {o.label}
@@ -235,13 +228,12 @@ function UploadZone({
         const dropped = e.dataTransfer.files?.[0];
         if (dropped) onFile(dropped);
       }}
-      className={`relative rounded-2xl border-2 border-dashed p-6 text-center transition ${
-        dragActive
+      className={`relative rounded-2xl border-2 border-dashed p-6 text-center transition ${dragActive
           ? 'border-brand-400 bg-brand-50'
           : file
             ? 'bg-white'
             : 'border-brand-200 bg-brand-50/40 hover:border-brand-300 hover:bg-brand-50'
-      }`}
+        }`}
       style={file ? { borderColor: TURQUOISE } : undefined}
     >
       <input

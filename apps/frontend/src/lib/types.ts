@@ -65,6 +65,7 @@ export interface School {
   address?: string | null;
   logoUrl?: string | null;
   isActive: boolean;
+  isFeatured?: boolean; 
 }
 
 export interface Grade {

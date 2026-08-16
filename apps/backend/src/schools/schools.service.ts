@@ -10,6 +10,7 @@ import { SearchSchoolAdminDto } from './dto/search-school-admin.dto';
 
 /** Plafond du dropdown public : une recherche qui matche encore beaucoup
  * d'écoles n'a pas besoin d'en renvoyer plus — l'utilisateur affine en tapant. */
+const MAX_FEATURED_SCHOOLS = 25;
 const PUBLIC_SEARCH_DEFAULT_LIMIT = 2000;
 const ADMIN_LIST_DEFAULT_LIMIT = 2000;
 
@@ -184,4 +185,34 @@ export class SchoolsService {
 
     return this.findGrades(id);
   }
+  /** Écoles mises en avant sur la landing page (public). */
+async findFeatured() {
+  return this.prisma.school.findMany({
+    where: { isActive: true, isFeatured: true },
+    orderBy: { name: 'asc' },
+    take: MAX_FEATURED_SCHOOLS,
+  });
+}
+
+/**
+ * Active/désactive la mise en avant d'une école. Plafonné à
+ * MAX_FEATURED_SCHOOLS — rejette l'activation d'une 6e école plutôt que de
+ * laisser l'admin croire qu'elle apparaîtra sur la landing page.
+ */
+async setFeatured(id: string, isFeatured: boolean) {
+  await this.findOne(id);
+
+  if (isFeatured) {
+    const count = await this.prisma.school.count({
+      where: { isFeatured: true, isActive: true, id: { not: id } },
+    });
+    if (count >= MAX_FEATURED_SCHOOLS) {
+      throw new BadRequestException(
+        `Maximum ${MAX_FEATURED_SCHOOLS} écoles mises en avant. Désactivez-en une avant d'en ajouter une nouvelle.`,
+      );
+    }
+  }
+
+  return this.prisma.school.update({ where: { id }, data: { isFeatured } });
+}
 }

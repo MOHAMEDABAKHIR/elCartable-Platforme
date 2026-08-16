@@ -291,3 +291,12 @@ export async function deactivateOfficialList(id: string): Promise<SchoolList> {
   const { data } = await api.delete<SchoolList>(`/school-lists/${id}`);
   return data;
 }
+export async function fetchFeaturedSchools(): Promise<School[]> {
+  const { data } = await api.get<School[]>('/schools/featured');
+  return data;
+}
+
+export async function setSchoolFeatured(id: string, isFeatured: boolean): Promise<School> {
+  const { data } = await api.patch<School>(`/schools/${id}/featured`, { isFeatured });
+  return data;
+}
