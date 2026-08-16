@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { api, apiErrorMessage } from '../../lib/api';
 import {
+  setSchoolFeatured,
   fetchSchool,
   getSchoolGrades,
   setSchoolGrades,
@@ -18,6 +19,11 @@ export function AdminSchoolDetailPage() {
   const { schoolId } = useParams<{ schoolId: string }>();
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
+  const featuredMutation = useMutation({
+    mutationFn: (isFeatured: boolean) => setSchoolFeatured(schoolId!, isFeatured),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['school', schoolId] }),
+    onError: (err) => setError(apiErrorMessage(err)),
+  });
 
   // --- École (infos + adresse éditable) ---
   const school = useQuery({
@@ -208,6 +214,17 @@ export function AdminSchoolDetailPage() {
           </ul>
         )}
       </Card>
+      <Badge className={school.data.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+        {school.data.isActive ? 'Active' : 'Inactive'}
+      </Badge>
+      <button
+        onClick={() => featuredMutation.mutate(!school.data!.isFeatured)}
+        disabled={featuredMutation.isPending}
+        className={`ml-2 rounded-full px-3 py-1 text-xs font-medium ${school.data.isFeatured ? 'bg-accent-100 text-accent-700' : 'bg-brand-100 text-brand-500'
+          }`}
+      >
+        {school.data.isFeatured ? '★ Mise en avant' : '☆ Mettre en avant'}
+      </button>
     </div>
   );
 }

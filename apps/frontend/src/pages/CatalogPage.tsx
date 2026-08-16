@@ -34,9 +34,9 @@ function ProductCard({ product }: { product: Product }) {
 
   return (
     <Card className="flex flex-col">
-      <div className="mb-3 flex h-32 items-center justify-center overflow-hidden rounded-xl bg-brand-50">
+      <div className="mb-3 flex h-32 items-center justify-center overflow-hidden rounded-lx bg-brand-50">
         {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+          <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" />
         ) : (
           <span className="text-4xl">🛒</span>
         )}
@@ -109,7 +109,7 @@ export function CatalogPage() {
 
       {/* Colonne panier : visible en permanence sur desktop, sticky sous le header */}
       <aside className="hidden lg:block">
-        <div className="sticky top-24">
+        <div className="sticky top-26">
           <CartPanel />
         </div>
       </aside>

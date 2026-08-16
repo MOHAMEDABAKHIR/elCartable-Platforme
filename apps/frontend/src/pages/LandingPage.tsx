@@ -10,8 +10,9 @@ import CtaButtons from '../components/CTA';
 import { Building2 } from 'lucide-react';
 import { MOROCCO_CITIES } from '../lib/moroccoCities';
 import { track } from '../lib/analytics';
+import FeaturedSchoolCards from '../components/FeaturedSchoolCards';
 
-import schoolDefaultImagel from '../../public/schoolDefaultImagel.jpg';
+import schoolDefaultImagel from '../../public/wizarat-tarbiya-logo.png';
 import productDefaultImagel from '../../public/productDefaultImagel.avif';
 
 export function LandingPage() {
@@ -92,39 +93,9 @@ export function LandingPage() {
             </span>
           </h1>
 
-          {/* Description */}
-          <p className="mb-6 sm:mb-10 max-w-xl text-base sm:text-lg text-brand-600">
-            Sélectionnez simplement l'école de votre enfant, choisissez son niveau
-            scolaire et nous préparons automatiquement la liste officielle avec
-            livraison partout au Maroc.
-          </p>
+          {/* les écoles célébres qui vont attirer la tention ( CTA ) */}
 
-          {/* Formulaire */}
-          <form onSubmit={submit} className="flex flex-col gap-3 sm:gap-4 md:flex-row">
-            <SearchableSelect
-              className="md:flex-1"
-              value={city}
-              onChange={(selectedCity) => {
-                setCity(selectedCity);
-
-                track('CLICK', {
-                  action: 'select_city',
-                  city: selectedCity,
-                });
-              }}
-              options={MOROCCO_CITIES.map((city) => ({
-                id: city,
-                label: city,
-              }))}
-              placeholder="Choisissez votre ville"
-              searchPlaceholder="Rechercher une ville..."
-              emptyLabel="Aucune ville trouvée"
-              icon={<Building2 size={18} />}
-              required
-            />
-
-            <Button className="w-full md:w-auto shrink-0">Voire les écoles</Button>
-          </form>
+          <FeaturedSchoolCards />
         </div>
 
         {/* RIGHT */}
@@ -132,7 +103,7 @@ export function LandingPage() {
           <img
             src="../../hero-desktop-1.png"
             alt="Hero"
-            className="w-full max-w-[280px] sm:max-w-[400px] lg:max-w-none lg:max-h-[700px] h-auto object-contain"
+            className="w-full max-w-[300px] sm:max-w-[500px] lg:max-w-none lg:max-h-[700px] h-auto object-contain"
           />
         </div>
       </div>
@@ -159,6 +130,32 @@ export function LandingPage() {
       />
 
       <CtaButtons primaryLabel="Commencez vos achats →" />
+      {/* Formulaire */}
+          <form onSubmit={submit} className="flex flex-col gap-3 sm:gap-4 md:flex-row mt-20">
+            <SearchableSelect
+              className="md:flex-1"
+              value={city}
+              onChange={(selectedCity) => {
+                setCity(selectedCity);
+
+                track('CLICK', {
+                  action: 'select_city',
+                  city: selectedCity,
+                });
+              }}
+              options={MOROCCO_CITIES.map((city) => ({
+                id: city,
+                label: city,
+              }))}
+              placeholder="Choisissez votre ville"
+              searchPlaceholder="Rechercher une ville..."
+              emptyLabel="Aucune ville trouvée"
+              icon={<Building2 size={18} />}
+              required
+            />
+
+            <Button className="w-full md:w-auto shrink-0">Voire les écoles</Button>
+          </form>
     </section>
 
   );

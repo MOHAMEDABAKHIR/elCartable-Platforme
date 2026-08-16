@@ -24,6 +24,9 @@ import { UpdateSchoolDto } from './dto/update-school.dto';
 import { SearchSchoolDto } from './dto/search-school.dto';
 import { SearchSchoolAdminDto } from './dto/search-school-admin.dto';
 import { SetSchoolGradesDto } from './dto/set-school-grades.dto';
+import { SetFeaturedDto } from './dto/set-featured.dto';
+
+
 
 @ApiTags('Schools')
 @Controller('schools')
@@ -44,10 +47,23 @@ export class SchoolsController {
   findAllForAdmin(@Query() query: SearchSchoolAdminDto) {
     return this.schoolsService.findAllForAdmin(query);
   }
+  @Get('featured')
+  @ApiOperation({ summary: 'Écoles mises en avant sur la landing page (public, max 5)' })
+  findFeatured() {
+    return this.schoolsService.findFeatured();
+  }
   @Get('cities')
   @ApiOperation({ summary: 'Liste des villes contenant au moins une école' })
   findCities() {
     return this.schoolsService.findCities();
+  }
+  @Patch(':id/featured')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Activer/désactiver la mise en avant d'une école (Admin, max 5)" })
+  setFeatured(@Param('id') id: string, @Body() dto: SetFeaturedDto) {
+    return this.schoolsService.setFeatured(id, dto.isFeatured);
   }
   @Get(':id/grades')
   @ApiOperation({

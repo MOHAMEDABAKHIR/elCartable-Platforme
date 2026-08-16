@@ -43,7 +43,7 @@ export function SchoolPage() {
 
                             <img
                                 src={school.logoUrl}
-                                className="mx-auto h-32 w-32 rounded-full border object-cover"
+                                className="mx-auto h-32 object-contain"
                             />
 
                         )}
@@ -106,13 +106,13 @@ export function SchoolPage() {
 
                         ) : (
 
-                            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 ">
 
                                 {grades.map((grade) => (
 
                                     <div
                                         key={grade.id}
-                                        className="rounded-2xl border bg-white p-6 shadow-sm"
+                                        className="rounded-sm border border-gray-300 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                                     >
 
                                         <GraduationCap

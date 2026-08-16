@@ -8,7 +8,7 @@ export function CartPanel() {
   const { items, updateQuantity, removeItem, totalItems, totalAmount } = useCart();
 
   return (
-    <Card className="flex max-h-[calc(100vh-7rem)] flex-col p-5">
+    <Card className="flex max-h-[calc(100vh-7rem)] flex-col mt-36">
       <div className="mb-4 flex items-center gap-2">
         <ShoppingBag className="h-5 w-5 text-brand-700" />
         <h2 className="font-bold text-brand-900">
@@ -25,7 +25,7 @@ export function CartPanel() {
               <li key={`${item.productId ?? item.label}-${index}`} className="flex gap-3">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand-50">
                   {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.label} className="h-full w-full object-cover" />
+                    <img src={item.imageUrl} alt={item.label} className="h-full w-full object-contain" />
                   ) : (
                     <span className="text-xl">🛒</span>
                   )}
