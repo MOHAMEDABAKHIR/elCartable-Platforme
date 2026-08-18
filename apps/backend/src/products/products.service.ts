@@ -9,8 +9,8 @@ import { SearchProductDto } from './dto/search-product.dto';
 import { SearchProductAdminDto } from './dto/search-product-admin.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
 
-const PUBLIC_SEARCH_DEFAULT_LIMIT = 40;
-const ADMIN_LIST_DEFAULT_LIMIT = 20;
+const PUBLIC_SEARCH_DEFAULT_LIMIT = 400;
+const ADMIN_LIST_DEFAULT_LIMIT = 200;
 
 @Injectable()
 export class ProductsService {

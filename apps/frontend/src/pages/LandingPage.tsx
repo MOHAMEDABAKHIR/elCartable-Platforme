@@ -14,6 +14,7 @@ import FeaturedSchoolCards from '../components/FeaturedSchoolCards';
 
 import schoolDefaultImagel from '../../public/wizarat-tarbiya-logo.png';
 import productDefaultImagel from '../../public/productDefaultImagel.avif';
+import { SchoolListPhotoCta } from '../components/SchoolListPhotoCta';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -131,31 +132,32 @@ export function LandingPage() {
 
       <CtaButtons primaryLabel="Commencez vos achats →" />
       {/* Formulaire */}
-          <form onSubmit={submit} className="flex flex-col gap-3 sm:gap-4 md:flex-row mt-20">
-            <SearchableSelect
-              className="md:flex-1"
-              value={city}
-              onChange={(selectedCity) => {
-                setCity(selectedCity);
+      <form onSubmit={submit} className="flex flex-col gap-3 sm:gap-4 md:flex-row mt-20">
+        <SearchableSelect
+          className="md:flex-1"
+          value={city}
+          onChange={(selectedCity) => {
+            setCity(selectedCity);
 
-                track('CLICK', {
-                  action: 'select_city',
-                  city: selectedCity,
-                });
-              }}
-              options={MOROCCO_CITIES.map((city) => ({
-                id: city,
-                label: city,
-              }))}
-              placeholder="Choisissez votre ville"
-              searchPlaceholder="Rechercher une ville..."
-              emptyLabel="Aucune ville trouvée"
-              icon={<Building2 size={18} />}
-              required
-            />
+            track('CLICK', {
+              action: 'select_city',
+              city: selectedCity,
+            });
+          }}
+          options={MOROCCO_CITIES.map((city) => ({
+            id: city,
+            label: city,
+          }))}
+          placeholder="Choisissez votre ville"
+          searchPlaceholder="Rechercher une ville..."
+          emptyLabel="Aucune ville trouvée"
+          icon={<Building2 size={18} />}
+          required
+        />
 
-            <Button className="w-full md:w-auto shrink-0">Voire les écoles</Button>
-          </form>
+        <Button className="w-full md:w-auto shrink-0">Voire les écoles</Button>
+      </form>
+     <SchoolListPhotoCta />
     </section>
 
   );

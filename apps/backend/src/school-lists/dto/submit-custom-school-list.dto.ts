@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsEnum, IsOptional, IsString, ValidateIf,ArrayMinSize, IsArray, ValidateNested } from 'class-validator';
 import { SchoolListSource } from '@prisma/client';
+import { CreateSchoolListItemDto } from './create-school-list-item.dto';
+import { Type } from 'class-transformer';
 
 const CUSTOM_SOURCES = [
   SchoolListSource.CUSTOM_PHOTO,
@@ -37,4 +39,13 @@ export class SubmitCustomSchoolListDto {
   @IsOptional()
   @IsString()
   gradeId?: string;
+  @ApiPropertyOptional({
+    type: [CreateSchoolListItemDto],
+    description: 'Produits du catalogue ajoutés en complément de la liste personnalisée (photo/pdf/manuel)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateSchoolListItemDto)
+  catalogueItems?: CreateSchoolListItemDto[];
 }
