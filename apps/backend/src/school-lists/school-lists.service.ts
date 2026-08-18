@@ -113,23 +113,29 @@ export class SchoolListsService {
    * commercial lors de la confirmation de commande.
    */
   async submitCustomList(dto: SubmitCustomSchoolListDto) {
-    if (dto.source === SchoolListSource.CUSTOM_MANUAL && !dto.rawText) {
-      throw new BadRequestException('rawText est requis pour une liste saisie manuellement.');
-    }
-    if (dto.source !== SchoolListSource.CUSTOM_MANUAL && !dto.fileUrl) {
-      throw new BadRequestException('fileUrl est requis pour une liste envoyée en photo ou en fichier.');
-    }
-
-    return this.prisma.schoolList.create({
-      data: {
-        schoolId: dto.schoolId,
-        gradeId: dto.gradeId,
-        source: dto.source,
-        fileUrl: dto.fileUrl,
-        rawText: dto.rawText,
-      },
-    });
+  if (dto.source === SchoolListSource.CUSTOM_MANUAL && !dto.rawText) {
+    throw new BadRequestException('rawText est requis pour une liste saisie manuellement.');
   }
+  if (dto.source !== SchoolListSource.CUSTOM_MANUAL && !dto.fileUrl) {
+    throw new BadRequestException('fileUrl est requis pour une liste envoyée en photo ou en fichier.');
+  }
+
+  const itemsData = dto.catalogueItems?.length
+    ? await this.resolveCataloguedItems(dto.catalogueItems)
+    : [];
+
+  return this.prisma.schoolList.create({
+    data: {
+      schoolId: dto.schoolId,
+      gradeId: dto.gradeId,
+      source: dto.source,
+      fileUrl: dto.fileUrl,
+      rawText: dto.rawText,
+      ...(itemsData.length ? { items: { create: itemsData } } : {}),
+    },
+    include: { items: { include: { product: true } } },
+  });
+}
 
   async findOne(id: string) {
     const list = await this.prisma.schoolList.findUnique({

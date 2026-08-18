@@ -8,6 +8,7 @@ import { apiErrorMessage } from '../lib/api';
 import { formatMAD } from '../lib/format';
 import { Alert, Button, Card, Field, Input, Select, Textarea } from '../components/ui';
 import { track } from '../lib/analytics';
+import { saveOrderToHistory } from '../lib/orderHistory';
 
 interface CheckoutForm {
   customerName: string;
@@ -66,6 +67,7 @@ export function CheckoutPage() {
           unitPrice: i.productId ? undefined : i.unitPrice,
         })),
       });
+      saveOrderToHistory(order);
       track('CONVERSION', {
         action: 'order_completed',
         orderId: order.id,

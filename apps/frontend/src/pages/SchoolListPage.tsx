@@ -10,11 +10,11 @@ import {
   GraduationCap,
   Image as ImageIcon,
   Loader2,
+  Package,
   Paperclip,
   PenLine,
   School,
   Send,
-  ShieldCheck,
 } from 'lucide-react';
 import { api, apiErrorMessage } from '../lib/api';
 import { fetchGrades, fetchSchoolList, fetchSchools } from '../lib/queries';
@@ -23,12 +23,20 @@ import { formatMAD } from '../lib/format';
 import { Alert, Button, Card, Spinner } from '../components/ui';
 import type { SchoolListSource } from '../lib/types';
 import { track } from '../lib/analytics';
+import "../components/MoleskineNotebooks.css";
+import { fetchProducts } from '../lib/queries';
 
 /* -------------------------------------------------------------------------- */
 /* Design tokens (elCartable) — violet primaire · turquoise #56BFB5 · jaune   */
 /* -------------------------------------------------------------------------- */
 const TURQUOISE = '#56BFB5';
-
+interface SelectedCatalogueItem {
+  productId: string;
+  name: string;
+  price: number;
+  imageUrl?: string | null;
+  quantity: number;
+}
 /* -------------------------------------------------------------------------- */
 /* Hero                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -56,11 +64,21 @@ function OfficialList({ schoolId, gradeId }: { schoolId: string; gradeId: string
     queryFn: () => fetchSchoolList(schoolId, gradeId),
   });
 
+  const items = useMemo(() => list.data?.items ?? [], [list.data]);
+
+  // Toutes les lignes sont sélectionnées par défaut ; l'utilisateur décoche
+  // ce qu'il possède déjà (crayons, trousse, etc.)
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setSelected(Object.fromEntries(items.map((i) => [i.id, true])));
+  }, [items]);
+
   if (list.isLoading) return <Spinner label="Recherche de la liste officielle…" />;
 
   if (!list.data) {
     return (
-      <Card className="rounded-3xl border border-brand-100 shadow-sm">
+      <Card className="rounded-3xl border border-brand-100">
         <Alert kind="info">Aucune liste officielle pour cette école et ce niveau.</Alert>
         <p className="mt-3 text-sm text-brand-500">
           Pas de souci : prenez votre liste en photo, envoyez-la en PDF, saisissez-la à la main
@@ -73,17 +91,26 @@ function OfficialList({ schoolId, gradeId }: { schoolId: string; gradeId: string
     );
   }
 
-  const items = list.data.items ?? [];
-  const total = items.reduce(
+  const selectedItems = items.filter((i) => selected[i.id]);
+  const selectedCount = selectedItems.length;
+  const total = selectedItems.reduce(
     (sum, i) => sum + i.quantity * Number(i.product?.price ?? 0),
     0,
   );
+  const allSelected = items.length > 0 && selectedCount === items.length;
 
-  const addAll = () => {
-    track('ADD_TO_CART', { schoolId, gradeId, items: items.length, total });
+  const toggleItem = (id: string) =>
+    setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const toggleAll = () =>
+    setSelected(Object.fromEntries(items.map((i) => [i.id, !allSelected])));
+
+  const addSelection = () => {
+    if (selectedCount === 0) return;
+    track('ADD_TO_CART', { schoolId, gradeId, items: selectedCount, total });
     setContext({ schoolId, gradeId });
     addMany(
-      items.map((i) => ({
+      selectedItems.map((i) => ({
         productId: i.productId ?? undefined,
         label: i.product?.name ?? i.label,
         quantity: i.quantity,
@@ -91,62 +118,95 @@ function OfficialList({ schoolId, gradeId }: { schoolId: string; gradeId: string
       })),
       { schoolId, gradeId },
     );
-    setContext({ schoolId, gradeId });
+
     navigate('/panier');
   };
 
   return (
-    <Card className="rounded-sm border border-gray-300">
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-          <ShieldCheck className="h-4.5 w-4.5" strokeWidth={1.75} />
-        </span>
-        <h2 className="text-lg font-bold text-brand-800">Liste officielle</h2>
+    <div className="squared-page p-8">
+      <div className="flex items-center justify-center gap-2.5">
+        <div className="flex items-center gap-2.5">
+          <h2 className="handwritten-title">Liste officielle</h2>
+        </div>
       </div>
+      <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-brand-500">
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={toggleAll}
+          className="h-3.5 w-3.5 rounded accent-brand-600"
+        />
+        Tout sélectionner
+      </label>
       <div className="mt-4 overflow-hidden rounded-2xl">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-brand-100 bg-brand-50/60 text-left text-brand-500">
-              <th className="px-4 py-2.5 font-semibold">Article</th>
-              <th className="px-4 py-2.5 text-center font-semibold">Qté</th>
-              <th className="px-4 py-2.5 text-right font-semibold">Prix</th>
+            <tr className="text-left text-brand-500">
+              <th className="w-8 px-4 py-2" />
+              <th className="px-4 py-2 font-semibold">Article</th>
+              <th className="px-4 py-2 text-center font-semibold">Qté</th>
+              <th className="px-4 py-2 text-right font-semibold">Prix</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((i) => (
-              <tr key={i.id} className="border-b border-brand-50 last:border-0">
-                <td className="px-4 py-2.5 text-brand-800">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-50">
-                      {i.product?.imageUrl ? (
-                        <img
-                          src={i.product.imageUrl}
-                          alt={i.product?.name ?? i.label}
-                          className="h-full w-full object-contain"
-                        />
-                      ) : (
-                        <span className="text-lg">🛒</span>
-                      )}
-                    </span>
-                    <span>{i.product?.name ?? i.label}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-2.5 text-center text-brand-600">{i.quantity}</td>
-                <td className="px-4 py-2.5 text-right text-brand-600">
-                  {i.product ? formatMAD(Number(i.product.price) * i.quantity) : '—'}
-                </td>
-              </tr>
-            ))}
+            {items.map((i) => {
+              const checked = Boolean(selected[i.id]);
+              return (
+                <tr
+                  key={i.id}
+                  onClick={() => toggleItem(i.id)}
+                  className={`cursor-pointer transition ${checked ? '' : 'opacity-40'}`}
+                >
+                  <td className="px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleItem(i.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-4 w-4 rounded accent-brand-600"
+                    />
+                  </td>
+                  <td className="px-4 py-2 text-brand-800">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-50">
+                        {i.product?.imageUrl ? (
+                          <img
+                            src={i.product.imageUrl}
+                            alt={i.product?.name ?? i.label}
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <Package className="h-4.5 w-4.5 text-brand-300" strokeWidth={1.75} />
+                        )}
+                      </span>
+                      <span>{i.product?.name ?? i.label}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-center text-brand-600">{i.quantity}</td>
+                  <td className="px-4 py-2.5 text-right text-brand-600">
+                    {i.product ? formatMAD(Number(i.product.price) * i.quantity) : '—'}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <span className="font-bold text-brand-700">Total estimé : {formatMAD(total)}</span>
-        <Button variant="accent" onClick={addAll} className="w-full sm:w-auto">
-          Ajouter toute la liste au panier
+      <div className="sticky bottom-4 z-10 mt-4 flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-base font-bold text-brand-800">
+          Total estimé ({selectedCount} article{selectedCount > 1 ? 's' : ''}) :{' '}
+          <span style={{ color: TURQUOISE }}>{formatMAD(total)}</span>
+        </span>
+        <Button
+          variant="accent"
+          onClick={addSelection}
+          disabled={selectedCount === 0}
+          className="w-full sm:w-auto"
+        >
+          Ajouter la sélection au panier
         </Button>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -182,8 +242,8 @@ function SourceToggle({
             aria-checked={active}
             onClick={() => onChange(o.value)}
             className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold leading-tight transition sm:flex-row sm:justify-center sm:gap-1.5 sm:text-sm ${active
-                ? 'bg-white text-brand-700 shadow-sm ring-1 ring-brand-100'
-                : 'text-brand-400 hover:text-brand-600'
+              ? 'bg-white text-brand-700 shadow-sm ring-1 ring-brand-100'
+              : 'text-brand-400 hover:text-brand-600'
               }`}
           >
             <o.icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
@@ -229,10 +289,10 @@ function UploadZone({
         if (dropped) onFile(dropped);
       }}
       className={`relative rounded-2xl border-2 border-dashed p-6 text-center transition ${dragActive
-          ? 'border-brand-400 bg-brand-50'
-          : file
-            ? 'bg-white'
-            : 'border-brand-200 bg-brand-50/40 hover:border-brand-300 hover:bg-brand-50'
+        ? 'border-brand-400 bg-brand-50'
+        : file
+          ? 'bg-white'
+          : 'border-brand-200 bg-brand-50/40 hover:border-brand-300 hover:bg-brand-50'
         }`}
       style={file ? { borderColor: TURQUOISE } : undefined}
     >
@@ -314,7 +374,7 @@ function BrandSelect({
         <select
           value={value}
           onChange={onChange}
-          className="w-full appearance-none rounded-xl border border-brand-200 bg-white py-2.5 pl-3.5 pr-9 text-sm text-brand-800 shadow-sm transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="w-full appearance-none rounded-xl border border-brand-200 bg-white py-2.5 pl-3.5 pr-9 text-sm text-brand-800 transition focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
         >
           {children}
         </select>
@@ -342,6 +402,28 @@ function CustomListForm() {
   const [gradeId, setGradeId] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [catalogueItems, setCatalogueItems] = useState<SelectedCatalogueItem[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const addCatalogueItem = (item: SelectedCatalogueItem) => {
+    setCatalogueItems((prev) => {
+      const idx = prev.findIndex((i) => i.productId === item.productId);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        return next;
+      }
+      return [...prev, item];
+    });
+  };
+
+  const updateCatalogueQty = (productId: string, quantity: number) =>
+    setCatalogueItems((prev) =>
+      prev.map((i) => (i.productId === productId ? { ...i, quantity: Math.max(1, quantity) } : i)),
+    );
+
+  const removeCatalogueItem = (productId: string) =>
+    setCatalogueItems((prev) => prev.filter((i) => i.productId !== productId));
 
   const isManual = source === 'CUSTOM_MANUAL';
   const isValid = isManual ? rawText.trim().length > 0 : Boolean(file);
@@ -351,42 +433,54 @@ function CustomListForm() {
     setError('');
   };
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSubmitting(true);
-    try {
-      let fileUrl: string | undefined;
-      if (source !== 'CUSTOM_MANUAL') {
-        if (!file) throw new Error('Merci de joindre une photo ou un fichier.');
-        const form = new FormData();
-        form.append('file', file);
-        const { data } = await api.post<{ fileUrl: string }>('/uploads', form);
-        fileUrl = data.fileUrl;
-      }
-
-      const { data: schoolList } = await api.post<{ id: string }>('/school-lists/custom', {
-        source,
-        fileUrl,
-        rawText: source === 'CUSTOM_MANUAL' ? rawText : undefined,
-        schoolId: schoolId || undefined,
-        gradeId: gradeId || undefined,
-      });
-
-      addMany(
-        [{ label: 'Liste scolaire personnalisée (à chiffrer par un conseiller)', quantity: 1, unitPrice: 0 }],
-        { schoolId: schoolId || undefined, gradeId: gradeId || undefined, schoolListId: schoolList.id },
-      );
-      navigate('/panier');
-    } catch (err) {
-      setError(apiErrorMessage(err));
-    } finally {
-      setSubmitting(false);
+ const submit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  setSubmitting(true);
+  try {
+    let fileUrl: string | undefined;
+    if (!isManual) {
+      if (!file) throw new Error('Merci de joindre une photo ou un fichier.');
+      const form = new FormData();
+      form.append('file', file);
+      const { data } = await api.post<{ fileUrl: string }>('/uploads', form);
+      fileUrl = data.fileUrl;
     }
-  };
+
+    const { data: schoolList } = await api.post<{ id: string }>('/school-lists/custom', {
+      source,
+      fileUrl,
+      rawText: isManual ? rawText : undefined,
+      schoolId: schoolId || undefined,
+      gradeId: gradeId || undefined,
+      catalogueItems: catalogueItems.length
+        ? catalogueItems.map((i) => ({ productId: i.productId, quantity: i.quantity }))
+        : undefined,
+    });
+
+    addMany(
+      [
+        { label: 'Liste scolaire personnalisée (à chiffrer par un conseiller)', quantity: 1, unitPrice: 0 },
+        ...catalogueItems.map((i) => ({
+          productId: i.productId,
+          label: i.name,
+          quantity: i.quantity,
+          unitPrice: i.price,
+          imageUrl: i.imageUrl,
+        })),
+      ],
+      { schoolId: schoolId || undefined, gradeId: gradeId || undefined, schoolListId: schoolList.id },
+    );
+    navigate('/panier');
+  } catch (err) {
+    setError(apiErrorMessage(err));
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
-    <Card className="rounded-3xl border border-brand-100 shadow-sm">
+    <Card className="rounded-3xl border border-brand-100 ">
       <div className="flex items-start gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
           <FileUp className="h-5 w-5" strokeWidth={1.75} />
@@ -422,7 +516,7 @@ function CustomListForm() {
               onChange={(e) => setRawText(e.target.value)}
               placeholder={'2 cahiers 96 pages\n1 trousse\n5 stylos bleus'}
               required
-              className="w-full rounded-2xl border border-brand-200 bg-white p-3.5 text-sm text-brand-800 shadow-sm transition placeholder:text-brand-300 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-2xl border border-brand-200 bg-white p-3.5 text-sm text-brand-800 transition placeholder:text-brand-300 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
             />
           </label>
         ) : (
@@ -467,6 +561,56 @@ function CustomListForm() {
             ))}
           </BrandSelect>
         </div>
+        <div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-brand-700">
+                Produits du catalogue (optionnel)
+              </span>
+              <Button type="button" variant="outline" className="!px-3 !py-1.5 text-xs" onClick={() => setPickerOpen(true)}>
+                + Ajouter un produit
+              </Button>
+            </div>
+
+            {catalogueItems.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {catalogueItems.map((i) => (
+                  <div key={i.productId} className="flex items-center gap-3 rounded-xl border border-brand-100 p-2.5">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-50">
+                      {i.imageUrl ? (
+                        <img src={i.imageUrl} alt={i.name} className="h-full w-full object-contain" />
+                      ) : (
+                        <Package className="h-4 w-4 text-brand-300" strokeWidth={1.75} />
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-brand-800">{i.name}</p>
+                      <p className="text-xs text-brand-500">{formatMAD(i.price * i.quantity)}</p>
+                    </div>
+                    <input
+                      type="number"
+                      min={1}
+                      value={i.quantity}
+                      onChange={(e) => updateCatalogueQty(i.productId, Number(e.target.value))}
+                      className="w-14 rounded-lg border border-brand-200 px-2 py-1 text-center text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeCatalogueItem(i.productId)}
+                      className="text-xs font-medium text-red-500 hover:underline"
+                    >
+                      Retirer
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        {pickerOpen && (
+            <ProductPickerModal
+              onClose={() => setPickerOpen(false)}
+              onAdd={(item) => addCatalogueItem(item)}
+            />
+          )}
 
         {error && <Alert>{error}</Alert>}
 
@@ -510,4 +654,79 @@ export function SchoolListPage() {
       <CustomListForm />
     </div>
   );
-} 
+}
+function ProductPickerModal({
+  onClose,
+  onAdd,
+}: {
+  onClose: () => void;
+  onAdd: (item: SelectedCatalogueItem) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const products = useQuery({
+  queryKey: ['catalogue-products-picker', search],
+  queryFn: () => fetchProducts({ search: search || undefined }),
+});
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-brand-800">Ajouter depuis le catalogue</h3>
+          <button type="button" onClick={onClose} className="text-brand-400 hover:text-brand-600">
+            ✕
+          </button>
+        </div>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher un produit…"
+          className="sticky mt-3 w-full rounded-xl border border-brand-200 px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+        />
+        <div className="mt-4 space-y-2">
+          {products.isLoading && <Spinner label="Recherche…" />}
+          {products.data?.length === 0 && !products.isLoading && (
+            <p className="py-6 text-center text-sm text-brand-400">Aucun produit trouvé.</p>
+          )}
+          {products.data?.map((p) => (
+            <div key={p.id} className="flex items-center gap-3 rounded-xl border border-brand-100 p-2.5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-50">
+                {p.imageUrl ? (
+                  <img src={p.imageUrl} alt={p.name} className="h-full w-full object-contain" />
+                ) : (
+                  <Package className="h-4.5 w-4.5 text-brand-300" strokeWidth={1.75} />
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-brand-800">{p.name}</p>
+                <p className="text-xs text-brand-500">{formatMAD(Number(p.price))}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="!px-3 !py-1.5 text-xs"
+                onClick={() =>
+                  onAdd({
+                    productId: p.id,
+                    name: p.name,
+                    price: Number(p.price),
+                    imageUrl: p.imageUrl,
+                    quantity: 1,
+                  })
+                }
+              >
+                Ajouter
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
