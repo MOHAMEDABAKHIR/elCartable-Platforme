@@ -57,6 +57,11 @@ export class SchoolsController {
   findCities() {
     return this.schoolsService.findCities();
   }
+  @Get('paginated')
+  @ApiOperation({ summary: 'Liste paginée publique des écoles actives (page "Toutes les écoles")' })
+  findAllPaginated(@Query() query: SearchSchoolDto) {
+    return this.schoolsService.findAllPaginated(query);
+  }
   @Patch(':id/featured')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -80,6 +85,7 @@ export class SchoolsController {
   @ApiOperation({
     summary: "Associer les niveaux à une école",
   })
+
   setGrades(
     @Param('id') id: string,
     @Body() dto: SetSchoolGradesDto,

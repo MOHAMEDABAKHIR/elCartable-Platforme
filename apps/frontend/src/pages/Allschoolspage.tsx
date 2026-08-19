@@ -1,31 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Building2, MapPin, ArrowRight, Search } from 'lucide-react';
-import { matchesSearch } from '../lib/search';
 
-import { fetchSchools } from '../lib/queries';
+import { fetchSchoolsPaginated } from '../lib/queries';
 import { Button, SearchBarBySchool } from '../components/ui';
+import { Pagination } from '../components/Pagination'; // ajuste le chemin si Pagination vit ailleurs
 import { track } from '../lib/analytics';
+
+const PAGE_SIZE = 24;
 
 export function AllSchoolsPage() {
   const navigate = useNavigate();
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+
+  // Debounce : on ne tape pas une requête à chaque frappe
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1); // on revient à la page 1 dès que la recherche change
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const schoolsQuery = useQuery({
-    queryKey: ['schools', 'all'],
-    queryFn: () => fetchSchools(),
+    queryKey: ['schools', 'paginated', page, search],
+    queryFn: () => fetchSchoolsPaginated({ page, limit: PAGE_SIZE, search: search || undefined }),
+    placeholderData: keepPreviousData, // évite le flash de "chargement" en changeant de page
   });
 
-  const allSchools = schoolsQuery.data ?? [];
-
-  const schools = search.trim()
-    ? allSchools.filter(
-        (school) =>
-          matchesSearch(school.name, search) ||
-          matchesSearch(school.address ?? '', search)
-      )
-    : allSchools;
+  const schools = schoolsQuery.data?.data ?? [];
+  const meta = schoolsQuery.data?.meta;
 
   return (
     <section className="container mx-auto px-4 py-10">
@@ -45,13 +52,13 @@ export function AllSchoolsPage() {
       {/* Barre de recherche */}
 
       <SearchBarBySchool
-        value={search}
-        onChange={setSearch}
+        value={searchInput}
+        onChange={setSearchInput}
         placeholder="Rechercher une école par nom ou adresse..."
         className="mb-8"
       />
 
-      {/* Loading */}
+      {/* Loading (premier chargement uniquement) */}
 
       {schoolsQuery.isLoading && (
         <div className="py-20 text-center text-brand-600">
@@ -59,9 +66,9 @@ export function AllSchoolsPage() {
         </div>
       )}
 
-      {/* Aucune école */}
+      {/* Aucune école du tout */}
 
-      {!schoolsQuery.isLoading && allSchools.length === 0 && (
+      {!schoolsQuery.isLoading && !search && meta?.total === 0 && (
         <div className="rounded-2xl border bg-white p-10 text-center">
           <Building2 className="mx-auto mb-4 text-brand-300" size={60} />
           <h2 className="text-2xl font-bold text-brand-900">
@@ -76,7 +83,7 @@ export function AllSchoolsPage() {
 
       {/* Aucun résultat de recherche */}
 
-      {!schoolsQuery.isLoading && allSchools.length > 0 && schools.length === 0 && (
+      {!schoolsQuery.isLoading && search && schools.length === 0 && (
         <div className="rounded-2xl border bg-white p-10 text-center">
           <Search className="mx-auto mb-4 text-brand-300" size={60} />
           <h2 className="text-2xl font-bold text-brand-900">
@@ -90,81 +97,93 @@ export function AllSchoolsPage() {
 
       {/* Liste */}
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {schools.length > 0 && (
+        <>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
-        {schools.map((school) => (
+            {schools.map((school) => (
 
-          <div
-            key={school.id}
-            className="rounded-3xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-          >
+              <div
+                key={school.id}
+                className="rounded-3xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              >
 
-            {/* Logo */}
+                {/* Logo */}
 
-            <div className="flex justify-center">
+                <div className="flex justify-center">
 
-              {school.logoUrl ? (
+                  {school.logoUrl ? (
 
-                <img
-                  src={school.logoUrl}
-                  alt={school.name}
-                  className="h-24 w-24 rounded-full object-cover border"
-                />
+                    <img
+                      src={school.logoUrl}
+                      alt={school.name}
+                      className="h-24 w-24 rounded-full object-cover border"
+                    />
 
-              ) : (
+                  ) : (
 
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-100">
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-100">
 
-                  <Building2 size={40} className="text-brand-500" />
+                      <Building2 size={40} className="text-brand-500" />
+
+                    </div>
+
+                  )}
 
                 </div>
 
-              )}
+                {/* Nom */}
 
-            </div>
+                <h2 className="mt-5 text-center text-xl font-bold text-brand-900">
+                  {school.name}
+                </h2>
 
-            {/* Nom */}
+                {/* Adresse */}
 
-            <h2 className="mt-5 text-center text-xl font-bold text-brand-900">
-              {school.name}
-            </h2>
+                <div className="mt-3 flex items-center justify-center gap-2 text-sm text-brand-600">
 
-            {/* Adresse */}
+                  <MapPin size={16} />
 
-            <div className="mt-3 flex items-center justify-center gap-2 text-sm text-brand-600">
+                  <span>{school.address ?? 'Adresse non renseignée'}</span>
 
-              <MapPin size={16} />
+                </div>
 
-              <span>{school.address ?? 'Adresse non renseignée'}</span>
+                {/* Bouton */}
 
-            </div>
+                <Button
+                  className="mt-6 w-full"
+                  onClick={() => {
+                    track('CLICK', {
+                      action: 'select_school',
+                      schoolId: school.id,
+                      schoolName: school.name,
+                    });
 
-            {/* Bouton */}
+                    navigate(`/ecoles/${school.id}`);
+                  }}
+                >
 
-            <Button
-              className="mt-6 w-full"
-              onClick={() => {
-                track('CLICK', {
-                  action: 'select_school',
-                  schoolId: school.id,
-                  schoolName: school.name,
-                });
+                  Voir les niveaux
 
-                navigate(`/ecoles/${school.id}`);
-              }}
-            >
+                  <ArrowRight size={18} className="ml-2" />
 
-              Voir les niveaux
+                </Button>
 
-              <ArrowRight size={18} className="ml-2" />
+              </div>
 
-            </Button>
+            ))}
 
           </div>
 
-        ))}
+          {/* Pagination */}
 
-      </div>
+          {meta && (
+            <div className="mt-10">
+              <Pagination meta={meta} onPageChange={setPage} />
+            </div>
+          )}
+        </>
+      )}
 
     </section>
   );

@@ -32,8 +32,12 @@ export function LandingPage() {
   });
 
   const products = useQuery({
-    queryKey: ['products'],
-    queryFn: () => fetchProducts(),
+    queryKey: ['products','carousel'],
+    queryFn: () => fetchProducts(
+      {
+        limit: CAROUSEL_LIMIT,
+      }
+    ),
   });
 
   // Écoles : logo + nom associés dans le même objet
@@ -108,8 +112,23 @@ export function LandingPage() {
           />
         </div>
       </div>
+{/* FOURNITURES */}
+      <h2 className="mb-4 text-center pt-15 sm:mb-6 text-3xl text-accent-900">
+        Les fournitures scolaires :
+      </h2>
 
-      {/* ÉCOLES */}
+      <InfiniteimagescrollSupplies
+        images={productImages}
+        durationSeconds={150}
+      />
+      <CtaButtons primaryLabel="Commencez vos achats →" primaryHref="/catalogue" />
+      
+
+
+      <SchoolListPhotoCta/>
+
+      
+{/* ÉCOLES */}
       <h2 className="mb-4 text-center pt-15 sm:mb-6 text-3xl text-accent-000">
         Les écoles :
       </h2>
@@ -119,18 +138,6 @@ export function LandingPage() {
       />
 
       <CtaButtons primaryLabel="Chercher votre école ici →" primaryHref="/ecoles" />
-
-      {/* FOURNITURES */}
-      <h2 className="mb-4 text-center pt-15 sm:mb-6 text-3xl text-accent-900">
-        Les fournitures scolaires :
-      </h2>
-
-      <InfiniteimagescrollSupplies
-        images={productImages}
-        durationSeconds={150}
-      />
-
-      <CtaButtons primaryLabel="Commencez vos achats →" />
       {/* Formulaire */}
       <form onSubmit={submit} className="flex flex-col gap-3 sm:gap-4 md:flex-row mt-20">
         <SearchableSelect
@@ -157,7 +164,7 @@ export function LandingPage() {
 
         <Button className="w-full md:w-auto shrink-0">Voire les écoles</Button>
       </form>
-     <SchoolListPhotoCta />
+
     </section>
 
   );
