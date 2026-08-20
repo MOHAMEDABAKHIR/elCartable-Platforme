@@ -77,7 +77,7 @@ export async function fetchCategories(): Promise<Category[]> {
   return toList<Category>(data);
 }
 
-export async function fetchProducts(params?: { search?: string; categoryId?: string }): Promise<Product[]> {
+export async function fetchProducts(params?: { search?: string; categoryId?: string ; limit?: number }): Promise<Product[]> {
   const { data } = await api.get('/products', { params });
   return toList<Product>(data);
 }
@@ -298,5 +298,15 @@ export async function fetchFeaturedSchools(): Promise<School[]> {
 
 export async function setSchoolFeatured(id: string, isFeatured: boolean): Promise<School> {
   const { data } = await api.patch<School>(`/schools/${id}/featured`, { isFeatured });
+  return data;
+}
+/** Listing paginé public — alimente la page "Toutes les écoles" (5000+ écoles). */
+export async function fetchSchoolsPaginated(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  city?: string;
+}): Promise<PaginatedResult<School>> {
+  const { data } = await api.get<PaginatedResult<School>>('/schools/paginated', { params });
   return data;
 }

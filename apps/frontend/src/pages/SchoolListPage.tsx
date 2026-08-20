@@ -567,7 +567,7 @@ function CustomListForm() {
                 Produits du catalogue (optionnel)
               </span>
               <Button type="button" variant="outline" className="!px-3 !py-1.5 text-xs" onClick={() => setPickerOpen(true)}>
-                + Ajouter un produit
+                + Ajouter un produit depuis le catalogue
               </Button>
             </div>
 

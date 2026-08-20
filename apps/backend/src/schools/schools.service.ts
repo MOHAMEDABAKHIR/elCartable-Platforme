@@ -13,6 +13,8 @@ import { SearchSchoolAdminDto } from './dto/search-school-admin.dto';
 const MAX_FEATURED_SCHOOLS = 25;
 const PUBLIC_SEARCH_DEFAULT_LIMIT = 2000;
 const ADMIN_LIST_DEFAULT_LIMIT = 2000;
+const PUBLIC_PAGE_DEFAULT_LIMIT = 24; // taille de page pour la grille "Toutes les écoles"
+
 
 @Injectable()
 export class SchoolsService {
@@ -214,5 +216,26 @@ async setFeatured(id: string, isFeatured: boolean) {
   }
 
   return this.prisma.school.update({ where: { id }, data: { isFeatured } });
+}
+async findAllPaginated(query: SearchSchoolDto) {
+  const { skip, take, page, limit } = paginationParams(query.page, query.limit, PUBLIC_PAGE_DEFAULT_LIMIT);
+  const where: Prisma.SchoolWhereInput = { isActive: true };
+
+  if (query.city) {
+    where.city = containsInsensitive(query.city);
+  }
+  if (query.search) {
+    where.OR = [
+      { name: containsInsensitive(query.search) },
+      { city: containsInsensitive(query.search) },
+      { address: containsInsensitive(query.search) },
+    ];
+  }
+
+  const [data, total] = await Promise.all([
+    this.prisma.school.findMany({ where, orderBy: { name: 'asc' }, skip, take }),
+    this.prisma.school.count({ where }),
+  ]);
+  return buildPaginatedResult(data, total, page, limit);
 }
 }
